@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.OpenApi;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
@@ -15,7 +16,7 @@ using API.Options;
 using API.Features.Auth.Services;
 using API.Features.Projects.Services;
 using API.Features.Tasks.Services;
-using Scalar.AspNetCore;
+
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
@@ -41,7 +42,7 @@ try
     builder.Services.AddDataProtection();
     builder.Services.AddSingleton<IDataEncryptor>(sp =>
     {
-        var protector = sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>().CreateProtector("mercadotnet-pii");
+        var protector = sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>().CreateProtector("taskr-pii");
         return new DataProtectionEncryptor(protector);
     });
 
@@ -144,24 +145,44 @@ try
         };
     });
 
-    // OpenAPI
-    builder.Services.AddOpenApi(o =>
+    // OpenAPI / Swagger
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
     {
-        o.AddDocumentTransformer((document, context, ct) =>
+        c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
         {
-            var apiDescription = LoadEmbeddedResource("API.Common.api.md") ?? "Mercadotnet API";
-            document.Info = new Microsoft.OpenApi.OpenApiInfo
+            Title = "Taskr API",
+            Version = "v1.0.0",
+            Description = LoadEmbeddedResource("API.Common.api.md") ?? "Taskr API",
+            Contact = new Microsoft.OpenApi.Models.OpenApiContact
             {
-                Title = "Mercadotnet API",
-                Version = "v1.0.0",
-                Description = apiDescription,
-                Contact = new Microsoft.OpenApi.OpenApiContact
+                Name = "API Support",
+                Email = "support@taskr.com"
+            }
+        });
+
+        c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT",
+            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            Description = "JWT Authorization header using the Bearer scheme."
+        });
+        c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+        {
+            {
+                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {
-                    Name = "API Support",
-                    Email = "support@mercadotnet.com"
-                }
-            };
-            return Task.CompletedTask;
+                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                    {
+                        Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
         });
     });
 
@@ -212,9 +233,13 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        app.MapOpenApi();
-        app.MapScalarApiReference(o => o.WithTitle("API API"));
     }
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Taskr API v1");
+        c.DocumentTitle = "Taskr API — Swagger UI";
+    });
 
     app.UseCors(b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
     app.UseRateLimiter();

@@ -16,20 +16,20 @@ public class SmtpSettings
     public bool UseTls { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public string From { get; set; } = "noreply@mercadotnet.local";
+    public string From { get; set; } = "noreply@taskr.local";
     public string FromName { get; set; } = "API";
 }
 
 public class ResendSettings
 {
     public string ApiKey { get; set; } = string.Empty;
-    public string From { get; set; } = "noreply@mercadotnet.local";
+    public string From { get; set; } = "noreply@taskr.local";
     public string FromName { get; set; } = "API";
 }
 
 public class ZeptoMailSettings
 {
     public string ApiKey { get; set; } = string.Empty;
-    public string From { get; set; } = "noreply@mercadotnet.local";
+    public string From { get; set; } = "noreply@taskr.local";
     public string FromName { get; set; } = "API";
 }

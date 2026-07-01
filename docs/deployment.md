@@ -1,8 +1,8 @@
-# Mercadotnet API — Render.com Deployment
+# Taskr API — Render.com Deployment
 
 ## Overview
 
-This guide covers deploying the Mercadotnet API on [Render.com](https://render.com) using their Docker runtime.
+This guide covers deploying the Taskr API on [Render.com](https://render.com) using their Docker runtime.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ This guide covers deploying the Mercadotnet API on [Render.com](https://render.c
 
 1. Go to **Dashboard → New → PostgreSQL**
 2. Plan: **Starter** (free) or **Standard** ($7/mo)
-3. Database name: `mercadotnet`
+3. Database name: `taskr`
 4. Note the **Internal Database URL** (for the web service) and **External URL** (for local CLI)
 
 ### 2. Redis (Optional, for caching)
@@ -29,7 +29,7 @@ You'll need a Redis provider. Options:
 
 1. **Dashboard → New → Web Service**
 2. Connect your Git repository
-3. **Name:** `mercadotnet-api`
+3. **Name:** `taskr-api`
 4. **Runtime:** `Docker`
 5. **Region:** Choose closest to your users
 6. **Branch:** `main`
@@ -45,11 +45,11 @@ Set these under **Environment** in the Render dashboard:
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `ASPNETCORE_URLS` | `http://+:8080` |
 | `JWT__SECRET` | Generate with: `openssl rand -base64 32` |
-| `JWT__ISSUER` | `mercadotnet-api` |
-| `JWT__AUDIENCE` | `mercadotnet-clients` |
+| `JWT__ISSUER` | `taskr-api` |
+| `JWT__AUDIENCE` | `taskr-clients` |
 | `JWT__ACCESSTOKENLIFETIMEMINUTES` | `15` |
 | `JWT__REFRESHTOKENLIFETIMEDAYS` | `7` |
-| `DATABASE__CONNECTIONSTRING` | `Host=<internal-db-host>;Port=5432;Database=mercadotnet;Username=<user>;Password=<password>` |
+| `DATABASE__CONNECTIONSTRING` | `Host=<internal-db-host>;Port=5432;Database=taskr;Username=<user>;Password=<password>` |
 | `REDIS__CONNECTIONSTRING` | `localhost:6379` — or your Redis provider URL |
 | `EMAIL__PROVIDER` | `smtp` |
 | `EMAIL__SMTP__HOST` | Your SMTP host (e.g., `smtp.sendgrid.net`) |
@@ -58,7 +58,7 @@ Set these under **Environment** in the Render dashboard:
 | `EMAIL__SMTP__USERNAME` | SMTP username |
 | `EMAIL__SMTP__PASSWORD` | SMTP password |
 | `EMAIL__SMTP__FROM` | `noreply@yourdomain.com` |
-| `EMAIL__SMTP__FROMNAME` | `Mercadotnet` |
+| `EMAIL__SMTP__FROMNAME` | `Taskr` |
 | `STORAGE__PROVIDER` | `s3` (or `cloudinary`, `local`) |
 | `STORAGE__S3__BUCKETNAME` | (if using S3) |
 | `STORAGE__S3__REGION` | (if using S3) |
@@ -92,7 +92,7 @@ Push to your Git branch — Render auto-deploys. Alternatively use the **Manual 
 
 ```bash
 # Via Render Shell:
-# 1. Go to Dashboard → mercadotnet-api → Shell
+# 1. Go to Dashboard → taskr-api → Shell
 # 2. Run:
 dotnet API.dll cli
 dotnet API.dll cli seed:admin

@@ -1,4 +1,4 @@
-# Mercadotnet API — Development Guide
+# Taskr API — Development Guide
 
 ## Prerequisites
 
@@ -10,8 +10,8 @@
 
 ```bash
 # 1. Clone and navigate
-git clone <repo> mercadotnet
-cd mercadotnet
+git clone <repo> taskr
+cd taskr
 
 # 2. Copy environment file (edit as needed)
 cp .env.example .env
@@ -85,7 +85,7 @@ dotnet ef migrations add <Name> -o Data/Migrations
 
 **Manually apply:**
 ```bash
-docker exec mercadotnet-api-1 dotnet API.dll
+docker exec taskr-api-1 dotnet API.dll
 # Migrations run automatically in the web host startup
 ```
 
@@ -94,8 +94,8 @@ docker exec mercadotnet-api-1 dotnet API.dll
 Run administrative commands against a running container:
 
 ```bash
-docker exec mercadotnet-api-1 dotnet API.dll cli
-docker exec mercadotnet-api-1 dotnet API.dll cli seed:admin
+docker exec taskr-api-1 dotnet API.dll cli
+docker exec taskr-api-1 dotnet API.dll cli seed:admin
 ```
 
 ## Email Testing

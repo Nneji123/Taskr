@@ -1,4 +1,4 @@
-# mercadotnet — Auth + Task Tracker API Design
+# taskr — Auth + Task Tracker API Design
 
 **Date:** 2026-07-01
 **Status:** Approved
@@ -79,7 +79,7 @@ author's existing production projects (Bounti/Django, straqa/Django, errandigo/N
 ## 4. Solution Layout
 
 ```
-mercadotnet/
+taskr/
 ├── API.sln
 ├── docker-compose.yml
 ├── docker-compose.override.yml           # dev-only: bind mounts, mailpit exposed
@@ -374,7 +374,7 @@ On write (`POST/PATCH/DELETE /tasks/{id}`):
 
 ## 10. Encryption (Data Protection)
 
-- `services.AddDataProtection().SetApplicationName("mercadotnet-api").PersistKeysToFileSystem(new DirectoryInfo("/root/.aspnet/DataProtection-Keys"))`
+- `services.AddDataProtection().SetApplicationName("taskr-api").PersistKeysToFileSystem(new DirectoryInfo("/root/.aspnet/DataProtection-Keys"))`
 - Docker named volume `dpapi-keys` mounted at that path
 - `EncryptedPersonalDataAttribute` — marker attribute on entity properties
 - `EncryptedStringConverter` — EF Core `ValueConverter<string, string>` that calls `IDataEncryptor` on write / read
@@ -410,7 +410,7 @@ Apply with `[EnableRateLimiting("policy-name")]` attributes. `OnRejected` return
   - `EMAIL__SMTP__PORT` — `1025` in dev
   - `EMAIL__SMTP__USETLS` — `false` in dev
   - `EMAIL__SMTP__USERNAME` / `PASSWORD` — empty in dev
-  - `EMAIL__SMTP__FROM` — `noreply@mercadotnet.local`
+  - `EMAIL__SMTP__FROM` — `noreply@taskr.local`
 - **Dev:** `mailpit` service in `docker-compose.yml` (`axllent/mailpit:latest`), exposed on `localhost:8025` for UI
 - **Triggers:**
   - `POST /auth/register` → Welcome email
@@ -443,18 +443,18 @@ ASPNETCORE_ENVIRONMENT=Production
 ASPNETCORE_URLS=http://+:8080
 
 # Database
-POSTGRES_USER=mercadotnet
+POSTGRES_USER=taskr
 POSTGRES_PASSWORD=changeme
-POSTGRES_DB=mercadotnet
-DATABASE__CONNECTIONSTRING=Host=postgres;Port=5432;Database=mercadotnet;Username=mercadotnet;Password=changeme
+POSTGRES_DB=taskr
+DATABASE__CONNECTIONSTRING=Host=postgres;Port=5432;Database=taskr;Username=taskr;Password=changeme
 
 # Redis
 REDIS__CONNECTIONSTRING=redis:6379
 
 # JWT
 JWT__SECRET=replace-with-output-of-openssl-rand-base64-64
-JWT__ISSUER=mercadotnet-api
-JWT__AUDIENCE=mercadotnet-clients
+JWT__ISSUER=taskr-api
+JWT__AUDIENCE=taskr-clients
 JWT__ACCESSTOKENLIFETIMEMINUTES=15
 JWT__REFRESHTOKENLIFETIMEDAYS=7
 
@@ -470,7 +470,7 @@ EMAIL__SMTP__PORT=1025
 EMAIL__SMTP__USETLS=false
 EMAIL__SMTP__USERNAME=
 EMAIL__SMTP__PASSWORD=
-EMAIL__SMTP__FROM=noreply@mercadotnet.local
+EMAIL__SMTP__FROM=noreply@taskr.local
 ```
 
 ## 16. Docker

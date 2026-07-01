@@ -2,12 +2,12 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-mercadotnet}
+      POSTGRES_USER: ${POSTGRES_USER:-taskr}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
-      POSTGRES_DB: ${POSTGRES_DB:-mercadotnet}
+      POSTGRES_DB: ${POSTGRES_DB:-taskr}
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mercadotnet}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-taskr}"]
       interval: 10s
     restart: unless-stopped
 
@@ -31,19 +31,19 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
-      DATABASE__CONNECTIONSTRING: Host=postgres;Port=5432;Database=${POSTGRES_DB:-mercadotnet};Username=${POSTGRES_USER:-mercadotnet};Password=${POSTGRES_PASSWORD:-changeme}
+      DATABASE__CONNECTIONSTRING: Host=postgres;Port=5432;Database=${POSTGRES_DB:-taskr};Username=${POSTGRES_USER:-taskr};Password=${POSTGRES_PASSWORD:-changeme}
       REDIS__CONNECTIONSTRING: redis:6379
       JWT__SECRET: ${JWT__SECRET}
-      JWT__ISSUER: ${JWT_ISSUER:-mercadotnet}
-      JWT__AUDIENCE: ${JWT_AUDIENCE:-mercadotnet-clients}
+      JWT__ISSUER: ${JWT_ISSUER:-taskr}
+      JWT__AUDIENCE: ${JWT_AUDIENCE:-taskr-clients}
       JWT__ACCESSTOKENLIFETIMEMINUTES: 15
       JWT__REFRESHTOKENLIFETIMEDAYS: 7
       SENTRY__DSN: ${SENTRY__DSN:-}
       EMAIL__SMTP__HOST: mailpit
       EMAIL__SMTP__PORT: 1025
       EMAIL__SMTP__USETLS: "false"
-      EMAIL__SMTP__FROM: noreply@mercadotnet.local
-      EMAIL__SMTP__FROMNAME: Mercadotnet
+      EMAIL__SMTP__FROM: noreply@taskr.local
+      EMAIL__SMTP__FROMNAME: Taskr
     ports: ["8080:8080"]
     volumes: [dpapi-keys:/home/app/.aspnet/DataProtection-Keys]
     restart: unless-stopped

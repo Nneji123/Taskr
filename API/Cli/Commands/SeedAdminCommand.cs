@@ -21,7 +21,7 @@ public class SeedAdminCommand(AppDbContext db) : CliCommand
         var hash = BCrypt.Net.BCrypt.HashPassword("Admin1234!");
         var user = new User
         {
-            Email = "admin@mercadotnet.local",
+            Email = "admin@taskr.local",
             FirstName = "Admin",
             LastName = "User",
             PasswordHash = hash,

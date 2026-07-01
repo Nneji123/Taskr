@@ -16,7 +16,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 
         var connectionString = configuration["DATABASE__CONNECTIONSTRING"]
             ?? configuration.GetSection("Database")["ConnectionString"]
-            ?? "Host=localhost;Port=5432;Database=mercadotnet;Username=mercadotnet;Password=changeme";
+            ?? "Host=localhost;Port=5432;Database=taskr;Username=taskr;Password=changeme";
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

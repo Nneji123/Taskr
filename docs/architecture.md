@@ -1,8 +1,8 @@
-# Mercadotnet API — Architecture
+# Taskr API — Architecture
 
 ## Overview
 
-Mercadotnet is a **production-grade task tracker API** built with **ASP.NET Core 10** (.NET 10). It follows a single-project, feature-folder layout with a vertical-slice architecture. Each feature (Auth, Projects, Tasks) contains its own Models, DTOs, Services, and Controllers — no cross-feature coupling.
+Taskr is a **production-grade task tracker API** built with **ASP.NET Core 10** (.NET 10). It follows a single-project, feature-folder layout with a vertical-slice architecture. Each feature (Auth, Projects, Tasks) contains its own Models, DTOs, Services, and Controllers — no cross-feature coupling.
 
 ```
 ┌─────────────────────────────────────────────────────────┐

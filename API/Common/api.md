@@ -37,7 +37,7 @@ All file fields in the API (such as `avatarUrl`, `coverImageUrl`, `attachments`)
 ### Example File Upload Request
 
 ```bash
-curl -X POST https://api.mercadotnet.com/v1/files \
+curl -X POST https://api.taskr.com/v1/files \
   -H "Authorization: Bearer <token>" \
   -F "files=@/path/to/image.jpg"
 ```
@@ -162,13 +162,13 @@ Administrative commands are run via the same Docker image:
 
 ```bash
 # List available commands
-docker exec mercadotnet-api-1 dotnet API.dll cli
+docker exec taskr-api-1 dotnet API.dll cli
 
 # Seed default admin user
-docker exec mercadotnet-api-1 dotnet API.dll cli seed:admin
+docker exec taskr-api-1 dotnet API.dll cli seed:admin
 ```
 
 ## Support
 
-- **Email:** support@mercadotnet.com
+- **Email:** support@taskr.com
 - **Version:** v1.0.0
