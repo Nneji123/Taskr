@@ -67,7 +67,8 @@ public class TasksService(AppDbContext db, ICacheService cache) : ITasksService
             Title = request.Title.Trim(), Description = request.Description?.Trim(),
             Attachments = request.Attachments ?? [],
             ProjectId = projectId, Priority = request.Priority ?? TaskPriority.Medium,
-            DueDate = request.DueDate, AssigneeId = request.AssigneeId
+            DueDate = request.DueDate, AssigneeId = request.AssigneeId,
+            Metadata = request.Metadata ?? new Dictionary<string, object?>()
         };
         db.Tasks.Add(task);
         await db.SaveChangesAsync(ct);

@@ -39,7 +39,8 @@ public class AuthService(
             PasswordHash = passwordHasher.Hash(request.Password),
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
-            AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim()
+            AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim(),
+            Metadata = request.Metadata ?? new Dictionary<string, object?>()
         };
 
         db.Users.Add(user);

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text;
 
 using Serilog;
+using Npgsql;
 using API.Data;
 using API.Common;
 using API.Common.Email;
@@ -48,11 +49,13 @@ try
     builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     {
         var dbOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>().Value;
-        options.UseNpgsql(dbOptions.ConnectionString, npgsql =>
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(dbOptions.ConnectionString);
+        dataSourceBuilder.EnableDynamicJson();
+        var dataSource = dataSourceBuilder.Build();
+        options.UseNpgsql(dataSource, npgsql =>
         {
             npgsql.MigrationsAssembly(typeof(Program).Assembly.FullName);
             npgsql.EnableRetryOnFailure(3);
-            npgsql.EnableDynamicJson();
         });
     });
 

@@ -7,6 +7,7 @@ public class RegisterRequest
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? AvatarUrl { get; set; }
+    public Dictionary<string, object?>? Metadata { get; set; }
 }
 
 public class LoginRequest

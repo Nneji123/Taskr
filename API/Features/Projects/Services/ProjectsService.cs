@@ -54,7 +54,8 @@ public class ProjectsService(AppDbContext db) : IProjectsService
             Name = request.Name.Trim(),
             Description = request.Description?.Trim(),
             CoverImageUrl = string.IsNullOrWhiteSpace(request.CoverImageUrl) ? null : request.CoverImageUrl.Trim(),
-            OwnerId = userId
+            OwnerId = userId,
+            Metadata = request.Metadata ?? new Dictionary<string, object?>()
         };
         db.Projects.Add(project);
         await db.SaveChangesAsync(ct);

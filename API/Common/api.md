@@ -1,7 +1,3 @@
-# Mercadotnet API
-
-Production-grade task tracker backend built with **ASP.NET Core 10** and **PostgreSQL**.
-
 ## Authentication
 
 This API uses **JWT Bearer** authentication. Every authenticated request must include an `Authorization` header:

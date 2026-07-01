@@ -11,6 +11,7 @@ public class CreateTaskRequest
     public TaskPriority? Priority { get; set; }
     public DateTime? DueDate { get; set; }
     public Guid? AssigneeId { get; set; }
+    public Dictionary<string, object?>? Metadata { get; set; }
 }
 
 public class UpdateTaskRequest
