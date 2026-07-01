@@ -1,0 +1,31 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dbmdl
+*.log
+*.vs/
+.vscode/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# ASP.NET
+appsettings.*.local.json
+
+# Environment
+.env
+.environment/
+
+# Docker
+.docker/
+
+# OS
+Thumbs.db
+
+# IDE
+.idea/
+*.sln.DotSettings.user

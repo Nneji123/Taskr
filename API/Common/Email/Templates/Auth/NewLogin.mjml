@@ -1,0 +1,27 @@
+<mjml>
+  <mj-head>
+    <mj-title>New Login Detected</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section>
+      <mj-column width="600px" background-color="#ffffff" padding="24px">
+        <mj-text font-size="28px" color="#1a1a1a" font-weight="bold" padding-bottom="16px">
+          New Login Detected
+        </mj-text>
+        <mj-divider border-color="#e0e0e0" />
+        <mj-text font-size="16px" color="#555555" line-height="1.6">
+          Hi {{FirstName}},
+        </mj-text>
+        <mj-text font-size="16px" color="#555555" line-height="1.6">
+          A new login was detected on your account from <strong>{{IpAddress}}</strong> at <strong>{{Time}}</strong>.
+        </mj-text>
+        <mj-text font-size="16px" color="#555555" line-height="1.6">
+          If this was you, no action is needed. If not, please change your password immediately.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
