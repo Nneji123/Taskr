@@ -14,6 +14,7 @@
     <PackageReference Include="CloudinaryDotNet" Version="1.27.4" />
     <PackageReference Include="Cronos" Version="0.13.0" />
     <PackageReference Include="Microsoft.OpenApi" Version="1.6.23" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.16.7" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.8.0" />

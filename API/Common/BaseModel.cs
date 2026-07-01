@@ -13,12 +13,15 @@ namespace API.Common;
 /// </summary>
 public abstract class BaseModel
 {
+    /// <summary>Unique identifier for the entity.</summary>
     [JsonPropertyName("id")]
     public Guid Id { get; set; } = Guid.NewGuid();
 
+    /// <summary>Timestamp (UTC) the entity was created.</summary>
     [JsonPropertyName("createdAt")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>Timestamp (UTC) the entity was last updated.</summary>
     [JsonPropertyName("updatedAt")]
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

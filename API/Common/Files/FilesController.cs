@@ -7,6 +7,11 @@ using API.Common.Storage;
 
 namespace API.Common.Files.Controllers;
 
+/// <summary>
+/// File upload and deletion endpoints. Uploaded files are stored on the
+/// configured storage provider (S3, Cloudinary, or local) and the resulting
+/// URL is the only value clients should store on resources.
+/// </summary>
 [Authorize]
 [Route("v1/files")]
 [EnableRateLimiting("write-strict")]
@@ -19,10 +24,22 @@ public class FilesController(IStorageService storage, ICurrentUser currentUser, 
     ];
     private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
 
+    /// <summary>Upload one or more files.</summary>
+    /// <remarks>
+    /// Accepts a <c>multipart/form-data</c> body with one or more files in the
+    /// <c>files</c> field. Each file must be one of the allowed content types
+    /// and no larger than 10 MB. The returned URL is what should be stored on
+    /// resources (avatar, cover image, task attachments, etc.).
+    /// </remarks>
     [HttpPost]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(MaxFileSize)]
     [ProducesResponseType(typeof(ApiResponse<FileResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status413PayloadTooLarge)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status415UnsupportedMediaType)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Upload([FromForm] IFormFileCollection files, CancellationToken ct)
     {
         if (files is null || files.Count == 0)
@@ -59,8 +76,18 @@ public class FilesController(IStorageService storage, ICurrentUser currentUser, 
         return StatusCode(201, ApiResponse<object>.Ok(data, $"Successfully uploaded {results.Count} file(s)."));
     }
 
+    /// <summary>Delete a previously uploaded file by URL.</summary>
+    /// <remarks>
+    /// Removes the underlying object from the configured storage provider.
+    /// The URL must be one previously returned by the upload endpoint and
+    /// owned by the calling user.
+    /// </remarks>
     [HttpDelete]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Delete([FromQuery] string url, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(url))

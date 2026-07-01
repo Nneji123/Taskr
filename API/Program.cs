@@ -9,6 +9,7 @@ using System.Text;
 
 using Serilog;
 using Npgsql;
+using Scalar.AspNetCore;
 using API.Data;
 using API.Common;
 using API.Common.Email;
@@ -161,6 +162,32 @@ try
             }
         });
 
+        // Surface XML doc comments (<summary>, <remarks>, <param>, <response>) as
+        // summaries, descriptions, and parameter/response metadata in Swagger UI.
+        var xmlFiles = new[]
+        {
+            $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml",
+            $"{typeof(API.Common.ApiResponse<>).Assembly.GetName().Name}.xml"
+        };
+        foreach (var xmlFile in xmlFiles)
+        {
+            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+            if (File.Exists(xmlPath))
+                c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+        }
+
+        // Use the controller name (e.g. "Auth", "Projects") as the Swagger tag.
+        c.TagActionsBy(api =>
+        {
+            var controllerName = api.ActionDescriptor?.RouteValues?["controller"];
+            return string.IsNullOrEmpty(controllerName) ? new[] { "API" } : new[] { controllerName };
+        });
+
+        // Descriptions shown when a tag is expanded in Swagger UI.
+        c.DocumentFilter<API.Common.Swagger.TagDescriptionsDocumentFilter>();
+
+        c.OrderActionsBy(api => api.RelativePath);
+
         c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
         {
             Name = "Authorization",
@@ -231,14 +258,32 @@ try
     app.UseExceptionHandler();
     app.UseSerilogRequestLogging();
 
-    if (app.Environment.IsDevelopment())
+    app.Use(async (ctx, next) =>
     {
-    }
+        if (ctx.Request.Path.StartsWithSegments("/swagger"))
+        {
+            ctx.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+            ctx.Response.Headers["Pragma"] = "no-cache";
+            ctx.Response.Headers["Expires"] = "0";
+        }
+        await next();
+    });
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Taskr API v1");
         c.DocumentTitle = "Taskr API — Swagger UI";
+        c.DisplayRequestDuration();
+    });
+    app.MapScalarApiReference((options, ctx) =>
+    {
+        var scheme = ctx.Request.Scheme;
+        var host = ctx.Request.Host;
+        options
+            .WithTitle("Taskr API")
+            .WithTheme(ScalarTheme.Moon)
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+        options.WithOpenApiRoutePattern($"{scheme}://{host}/swagger/v1/swagger.json");
     });
 
     app.UseCors(b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());

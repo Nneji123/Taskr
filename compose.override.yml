@@ -5,7 +5,3 @@ services:
         - BUILD_CONFIGURATION=Debug
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-    volumes:
-      - ./API:/src/API
-    working_dir: /src/API
-    command: dotnet watch run --no-launch-profile --urls http://0.0.0.0:8080
