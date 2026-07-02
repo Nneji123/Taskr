@@ -16,10 +16,21 @@ public class S3StorageService : IStorageService
     {
         _s3 = options.Value.S3;
         _logger = logger;
-        _client = new AmazonS3Client(
-            _s3.AccessKey, _s3.SecretKey,
-            new AmazonS3Config { RegionEndpoint = RegionEndpoint.GetBySystemName(_s3.Region) });
+
+        var config = new AmazonS3Config();
+        if (!string.IsNullOrWhiteSpace(_s3.ServiceUrl))
+        {
+            config.ServiceURL = _s3.ServiceUrl;
+        }
+        else
+        {
+            config.RegionEndpoint = RegionEndpoint.GetBySystemName(_s3.Region);
+        }
+
+        _client = new AmazonS3Client(_s3.AccessKey, _s3.SecretKey, config);
     }
+
+    private static readonly TimeSpan DefaultUploadSignedUrlTtl = TimeSpan.FromMinutes(5);
 
     public async Task<string> UploadAsync(Stream content, string fileName, string contentType, CancellationToken ct = default)
     {
@@ -30,16 +41,11 @@ public class S3StorageService : IStorageService
             InputStream = content,
             BucketName = _s3.BucketName,
             Key = key,
-            ContentType = contentType,
-            CannedACL = S3CannedACL.PublicRead
+            ContentType = contentType
         }, ct);
 
-        var url = string.IsNullOrWhiteSpace(_s3.BaseUrl)
-            ? $"https://{_s3.BucketName}.s3.{_s3.Region}.amazonaws.com/{key}"
-            : $"{_s3.BaseUrl.TrimEnd('/')}/{key}";
-
         _logger.LogInformation("Uploaded {Key} to S3 bucket {Bucket}", key, _s3.BucketName);
-        return url;
+        return GetSignedUrl(key, DefaultUploadSignedUrlTtl);
     }
 
     public async Task DeleteAsync(string url, CancellationToken ct = default)
@@ -59,6 +65,41 @@ public class S3StorageService : IStorageService
     public string GetUrl(string key) => string.IsNullOrWhiteSpace(_s3.BaseUrl)
         ? $"https://{_s3.BucketName}.s3.{_s3.Region}.amazonaws.com/{key}"
         : $"{_s3.BaseUrl.TrimEnd('/')}/{key}";
+
+    private static readonly TimeSpan MaxSignedUrlTtl = TimeSpan.FromHours(1);
+    private static readonly TimeSpan MinSignedUrlTtl = TimeSpan.FromSeconds(30);
+
+    public string GetSignedUrl(string key, TimeSpan expiresIn)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            throw new ArgumentException("Storage key is required.", nameof(key));
+
+        var ttl = expiresIn;
+        if (ttl < MinSignedUrlTtl) ttl = MinSignedUrlTtl;
+        if (ttl > MaxSignedUrlTtl) ttl = MaxSignedUrlTtl;
+
+        var request = new GetPreSignedUrlRequest
+        {
+            BucketName = _s3.BucketName,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = DateTime.UtcNow.Add(ttl),
+            Protocol = Protocol.HTTPS
+        };
+
+        var url = _client.GetPreSignedURL(request);
+
+        if (!string.IsNullOrWhiteSpace(_s3.BaseUrl))
+        {
+            var prefix = _s3.BaseUrl.TrimEnd('/');
+            var keyIndex = url.IndexOf($"/{key}", StringComparison.Ordinal);
+            if (keyIndex >= 0)
+                url = prefix + url[keyIndex..];
+        }
+
+        _logger.LogInformation("Generated signed URL for {Key} (TTL: {Ttl}s)", key, (int)ttl.TotalSeconds);
+        return url;
+    }
 
     private static string? ExtractKey(string url)
     {

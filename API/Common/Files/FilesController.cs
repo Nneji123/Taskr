@@ -59,10 +59,12 @@ public class FilesController(IStorageService storage, ICurrentUser currentUser, 
 
             await using var stream = file.OpenReadStream();
             var url = await storage.UploadAsync(stream, file.FileName, file.ContentType, ct);
+            var key = ExtractKeyFromUrl(url);
 
             results.Add(new FileResponse
             {
                 Id = Guid.NewGuid().ToString("N"),
+                Key = key,
                 Url = url,
                 OriginalFilename = file.FileName,
                 FileSize = file.Length,
@@ -95,5 +97,57 @@ public class FilesController(IStorageService storage, ICurrentUser currentUser, 
 
         await storage.DeleteAsync(url, ct);
         return OkResult<object?>(null, "File deleted successfully.");
+    }
+
+    private const int MinSignedUrlTtlSeconds = 30;
+    private const int MaxSignedUrlTtlSeconds = 3600;
+    private const int DefaultSignedUrlTtlSeconds = 300;
+
+    /// <summary>Generate a short-lived pre-signed URL for a stored object.</summary>
+    /// <remarks>
+    /// Returns a time-limited URL that grants read access to the object identified
+    /// by <c>key</c>. Use this when files are stored privately and the client needs
+    /// to fetch them on demand (e.g. to render in a browser).
+    ///
+    /// The requested <c>ttlSeconds</c> is clamped to the range
+    /// <c>30 ≤ ttl ≤ 3600</c> seconds; the response always
+    /// reports the actual TTL that was applied. The default is 300 seconds (5 min).
+    /// </remarks>
+    [HttpGet("signed-url")]
+    [EnableRateLimiting("api-default")]
+    [ProducesResponseType(typeof(ApiResponse<SignedUrlResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
+    public IActionResult GetSignedUrl([FromQuery] string key, [FromQuery] int? ttlSeconds)
+    {
+        if (string.IsNullOrWhiteSpace(key))
+            return Ok(ApiResponse.Fail("Query parameter 'key' is required."));
+
+        if (key.Contains("..", StringComparison.Ordinal) || key.StartsWith('/'))
+            return Ok(ApiResponse.Fail("Query parameter 'key' is invalid."));
+
+        var requested = ttlSeconds ?? DefaultSignedUrlTtlSeconds;
+        var clamped = Math.Clamp(requested, MinSignedUrlTtlSeconds, MaxSignedUrlTtlSeconds);
+        var ttl = TimeSpan.FromSeconds(clamped);
+
+        var url = storage.GetSignedUrl(key, ttl);
+
+        var response = new SignedUrlResponse
+        {
+            Url = url,
+            Key = key,
+            TtlSeconds = clamped,
+            ExpiresAt = DateTime.UtcNow.AddSeconds(clamped)
+        };
+
+        return OkResult(response, "Signed URL generated successfully.");
+    }
+
+    private static string ExtractKeyFromUrl(string url)
+    {
+        var uri = new Uri(url);
+        var segments = uri.AbsolutePath.TrimStart('/').Split('/');
+        return segments.Length > 0 ? segments[^1] : url;
     }
 }

@@ -14,4 +14,14 @@ public interface IStorageService
 
     /// <summary>Build a publicly accessible URL for a given key.</summary>
     string GetUrl(string key);
+
+    /// <summary>
+    /// Build a time-limited, pre-signed URL for a given key. Callers should fetch a
+    /// signed URL only when they are about to display or download the object, not for
+    /// long-lived storage. Provider implementations cap the requested TTL.
+    /// </summary>
+    /// <param name="key">Storage key of the object to sign (e.g. <c>abc123_photo.jpg</c>).</param>
+    /// <param name="expiresIn">Requested validity window. Providers clamp this to a safe maximum.</param>
+    /// <returns>URL that grants read access until the expiry.</returns>
+    string GetSignedUrl(string key, TimeSpan expiresIn);
 }

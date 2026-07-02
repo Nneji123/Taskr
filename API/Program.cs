@@ -1,23 +1,9 @@
-using System.Threading.RateLimiting;
-using FluentValidation;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.OpenApi;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.EntityFrameworkCore;
-using System.Text;
-
 using Serilog;
-using Npgsql;
 using Scalar.AspNetCore;
 using API.Data;
 using API.Common;
-using API.Common.Email;
-using API.Options;
-using API.Features.Auth.Services;
-using API.Features.Projects.Services;
-using API.Features.Tasks.Services;
-
+using API.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
@@ -26,192 +12,21 @@ try
     var builder = WebApplication.CreateBuilder(args);
     builder.Host.UseSerilog((ctx, svc, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration));
 
-    // Options
-    builder.Services.AddOptions<JwtOptions>().Bind(builder.Configuration.GetSection(JwtOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
-    builder.Services.AddOptions<DatabaseOptions>().Bind(builder.Configuration.GetSection(DatabaseOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
-    builder.Services.AddOptions<RedisOptions>().Bind(builder.Configuration.GetSection(RedisOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
-    builder.Services.AddOptions<EmailOptions>().Bind(builder.Configuration.GetSection(EmailOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
-    builder.Services.AddOptions<StorageOptions>().Bind(builder.Configuration.GetSection(StorageOptions.SectionName)).ValidateDataAnnotations().ValidateOnStart();
-
-    // Register known email templates so they are eagerly validated
-    EmailTemplateRegistry.RegisterTemplates(
-        FeatureEmailTemplates.Auth.Welcome,
-        FeatureEmailTemplates.Auth.NewLogin,
-        FeatureEmailTemplates.Auth.PasswordReset);
-
-    // Data protection + encryption
-    builder.Services.AddDataProtection();
-    builder.Services.AddSingleton<IDataEncryptor>(sp =>
-    {
-        var protector = sp.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>().CreateProtector("taskr-pii");
-        return new DataProtectionEncryptor(protector);
-    });
-
-    // DB
-    builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-    {
-        var dbOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>().Value;
-        var dataSourceBuilder = new NpgsqlDataSourceBuilder(dbOptions.ConnectionString);
-        dataSourceBuilder.EnableDynamicJson();
-        var dataSource = dataSourceBuilder.Build();
-        options.UseNpgsql(dataSource, npgsql =>
-        {
-            npgsql.MigrationsAssembly(typeof(Program).Assembly.FullName);
-            npgsql.EnableRetryOnFailure(3);
-        });
-    });
-
-    // Cache
-    builder.Services.AddStackExchangeRedisCache(options => options.Configuration = builder.Configuration.GetSection(RedisOptions.SectionName)["ConnectionString"]);
-    builder.Services.AddScoped<ICacheService, RedisCacheService>();
-
-    // Auth
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(jwtOptions =>
-        {
-            var jwt = builder.Configuration.GetSection(JwtOptions.SectionName);
-            jwtOptions.MapInboundClaims = false;
-            jwtOptions.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true, ValidIssuer = jwt["Issuer"],
-                ValidateAudience = true, ValidAudience = jwt["Audience"],
-                ValidateLifetime = true, ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Secret"]!)),
-                ClockSkew = TimeSpan.FromSeconds(30)
-            };
-        });
-
-    // DI
-    builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
-    builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
-    builder.Services.AddScoped<IAuthService, AuthService>();
-    builder.Services.AddScoped<IProjectsService, ProjectsService>();
-    builder.Services.AddScoped<ITasksService, TasksService>();
-    builder.Services.AddScoped(static sp =>
-    {
-        var emailOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<API.Options.EmailOptions>>().Value;
-        return emailOptions.Provider.ToLower() switch
-        {
-            "resend" => (API.Common.Email.IEmailService)sp.GetRequiredService<API.Common.Email.Providers.ResendEmailService>(),
-            "zeptomail" => sp.GetRequiredService<API.Common.Email.Providers.ZeptoMailEmailService>(),
-            _ => sp.GetRequiredService<API.Common.Email.Providers.SmtpEmailService>(),
-        };
-    });
-    builder.Services.AddScoped<API.Common.Email.Providers.SmtpEmailService>();
-    builder.Services.AddScoped<API.Common.Email.Providers.ResendEmailService>();
-    builder.Services.AddScoped<API.Common.Email.Providers.ZeptoMailEmailService>();
-
-    // Background email queue (replaces ad-hoc fire-and-forget Task.Run)
-    builder.Services.AddSingleton<API.Common.Email.IEmailQueue, API.Common.Email.EmailQueue>();
-    builder.Services.AddHostedService<API.Common.Email.EmailBackgroundService>();
-    builder.Services.AddScoped<API.Common.Storage.Providers.LocalStorageService>();
-    builder.Services.AddScoped<API.Common.Storage.Providers.S3StorageService>();
-    builder.Services.AddScoped<API.Common.Storage.Providers.CloudinaryStorageService>();
-    builder.Services.AddScoped<API.Common.Storage.FileURLValidator>();
-    builder.Services.AddScoped<API.Common.Storage.IStorageService>(sp =>
-    {
-        var storageOptions = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<API.Options.StorageOptions>>().Value;
-        return storageOptions.Provider.ToLower() switch
-        {
-            "s3" => sp.GetRequiredService<API.Common.Storage.Providers.S3StorageService>(),
-            "cloudinary" => sp.GetRequiredService<API.Common.Storage.Providers.CloudinaryStorageService>(),
-            _ => sp.GetRequiredService<API.Common.Storage.Providers.LocalStorageService>(),
-        };
-    });
-
-    // Scheduled tasks
-    builder.Services.AddHostedService<API.Features.Auth.ScheduledTasks.CleanupExpiredRefreshTokensTask>();
-
-    builder.Services.AddScoped<ICurrentUser, CurrentUser>();
-    builder.Services.AddHttpContextAccessor();
-    builder.Services.AddHttpClient();
-    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-    builder.Services.AddProblemDetails();
-    builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
-    // Rate limiting
-    builder.Services.AddRateLimiter(options =>
-    {
-        options.RejectionStatusCode = 429;
-        options.AddPolicy("auth-strict", ctx => RateLimitPartition.GetFixedWindowLimiter(
-            ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 50, Window = TimeSpan.FromMinutes(5) }));
-        options.AddPolicy("api-default", ctx => RateLimitPartition.GetFixedWindowLimiter(
-            ctx.User.FindFirst("sub")?.Value ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
-        options.AddPolicy("write-strict", ctx => RateLimitPartition.GetFixedWindowLimiter(
-            ctx.User.FindFirst("sub")?.Value ?? "unknown", _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1) }));
-        options.OnRejected = async (ctx, ct) =>
-        {
-            ctx.HttpContext.Response.StatusCode = 429;
-            await ctx.HttpContext.Response.WriteAsJsonAsync(ApiResponse.Fail("Too many requests. Please try again later."), ct);
-        };
-    });
-
-    // OpenAPI / Swagger
-    builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(c =>
-    {
-        c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-        {
-            Title = "Taskr API",
-            Version = "v1.0.0",
-            Description = LoadEmbeddedResource("API.Common.api.md") ?? "Taskr API",
-            Contact = new Microsoft.OpenApi.Models.OpenApiContact
-            {
-                Name = "API Support",
-                Email = "support@taskr.com"
-            }
-        });
-
-        // Surface XML doc comments (<summary>, <remarks>, <param>, <response>) as
-        // summaries, descriptions, and parameter/response metadata in Swagger UI.
-        var xmlFiles = new[]
-        {
-            $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml",
-            $"{typeof(API.Common.ApiResponse<>).Assembly.GetName().Name}.xml"
-        };
-        foreach (var xmlFile in xmlFiles)
-        {
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            if (File.Exists(xmlPath))
-                c.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
-        }
-
-        // Use the controller name (e.g. "Auth", "Projects") as the Swagger tag.
-        c.TagActionsBy(api =>
-        {
-            var controllerName = api.ActionDescriptor?.RouteValues?["controller"];
-            return string.IsNullOrEmpty(controllerName) ? new[] { "API" } : new[] { controllerName };
-        });
-
-        // Descriptions shown when a tag is expanded in Swagger UI.
-        c.DocumentFilter<API.Common.Swagger.TagDescriptionsDocumentFilter>();
-
-        // Query parameters displayed in camelCase (e.g. "pageSize" not "PageSize").
-        c.ParameterFilter<API.Common.Swagger.CamelCaseQueryParameterFilter>();
-
-        c.OrderActionsBy(api => api.RelativePath);
-
-        c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-        {
-            Name = "Authorization",
-            Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-            Scheme = "bearer",
-            BearerFormat = "JWT",
-            In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-            Description = "JWT Authorization header using the Bearer scheme."
-        });
-        c.OperationFilter<API.Common.Swagger.SecurityRequirementsOperationFilter>();
-    });
+    // Register Services via Extensions
+    builder.Services
+        .AddAppOptions(builder.Configuration)
+        .AddAppDbContext(builder.Configuration)
+        .AddAppCache(builder.Configuration)
+        .AddAppAuth(builder.Configuration)
+        .AddAppServices()
+        .AddAppRateLimiter()
+        .AddAppSwagger(LoadEmbeddedResource)
+        .AddAppHealthChecks(builder.Configuration);
 
     // Sentry
     var sentryDsn = builder.Configuration["SENTRY__DSN"] ?? builder.Configuration["Sentry:Dsn"];
     if (!string.IsNullOrWhiteSpace(sentryDsn))
         SentrySdk.Init(o => { o.Dsn = sentryDsn; o.TracesSampleRate = 0.2; o.Environment = builder.Environment.EnvironmentName; });
-
-    // Health checks
-    builder.Services.AddHealthChecks()
-        .AddNpgSql(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<DatabaseOptions>>().Value.ConnectionString)
-        .AddRedis(sp => sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<RedisOptions>>().Value.ConnectionString);
 
     builder.Services.AddControllers()
         .AddJsonOptions(o =>

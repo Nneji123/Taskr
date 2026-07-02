@@ -44,6 +44,13 @@ services:
       EMAIL__SMTP__USETLS: "false"
       EMAIL__SMTP__FROM: noreply@taskr.local
       EMAIL__SMTP__FROMNAME: Taskr
+      STORAGE__PROVIDER: ${STORAGE__PROVIDER:-local}
+      STORAGE__S3__BUCKETNAME: ${STORAGE__S3__BUCKETNAME:-}
+      STORAGE__S3__REGION: ${STORAGE__S3__REGION:-}
+      STORAGE__S3__ACCESSKEY: ${STORAGE__S3__ACCESSKEY:-}
+      STORAGE__S3__SECRETKEY: ${STORAGE__S3__SECRETKEY:-}
+      STORAGE__S3__BASEURL: ${STORAGE__S3__BASEURL:-}
+      STORAGE__S3__SERVICEURL: ${STORAGE__S3__SERVICEURL:-}
     ports: ["5001:5001"]
     volumes: [dpapi-keys:/home/app/.aspnet/DataProtection-Keys]
     restart: unless-stopped

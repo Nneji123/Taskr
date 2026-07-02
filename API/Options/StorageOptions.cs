@@ -16,6 +16,7 @@ public class S3StorageSettings
     public string AccessKey { get; set; } = "";
     public string SecretKey { get; set; } = "";
     public string BaseUrl { get; set; } = "";
+    public string ServiceUrl { get; set; } = "";
 }
 
 public class CloudinarySettings

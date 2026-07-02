@@ -1,0 +1,3114 @@
+{
+    "openapi": "3.0.1",
+    "info": {
+        "title": "Taskr API",
+        "description": "## Authentication\n\nThis API uses **JWT Bearer** authentication. Every authenticated request must include an `Authorization` header:\n\n```\nAuthorization: Bearer <your_access_token_here>\n```\n\nGet an access token by calling `POST /v1/auth/login` with your email and password. Use the returned `refreshToken` to obtain new tokens via `POST /v1/auth/refresh` (rotated on use, with reuse detection).\n\n## File Fields and Uploads\n\nAll file fields in the API (such as `avatarUrl`, `coverImageUrl`, `attachments`) expect **URLs** as values, not file objects. To upload a file:\n\n1. **Upload your file** using the file upload endpoint:\n   - **Endpoint:** `POST /v1/files`\n   - **Authentication:** Requires Bearer token\n   - **Content-Type:** `multipart/form-data`\n   - **Body:** Form data with `files` field (single or multiple files)\n   - **Max size:** 10 MB per file\n   - **Allowed types:** `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `application/pdf`\n\n2. **Use the returned URL** in the field of your choice. URLs are validated server-side to ensure they were uploaded through this API.\n\n### Example File Upload Request\n\n```bash\ncurl -X POST https://api.taskr.com/v1/files \\\n  -H \"Authorization: Bearer <token>\" \\\n  -F \"files=@/path/to/image.jpg\"\n```\n\n### Example File Upload Response\n\n```json\n{\n  \"success\": true,\n  \"message\": \"Successfully uploaded 1 file(s).\",\n  \"data\": {\n    \"id\": \"abc123\",\n    \"url\": \"https://cdn.example.com/uploads/abc123_image.jpg\",\n    \"originalFilename\": \"image.jpg\",\n    \"fileSize\": 12345,\n    \"fileSizeDisplay\": \"12.1 KB\",\n    \"contentType\": \"image/jpeg\",\n    \"createdAt\": \"2026-07-01T13:00:00Z\"\n  }\n}\n```\n\n### URL Validation\n\nWhen a URL is submitted in a file field (e.g. `coverImageUrl`), the API:\n- Verifies the URL format\n- Confirms the host is a trusted storage provider (S3, Cloudinary, or local)\n- Performs an HTTP `HEAD` request to confirm accessibility\n- Validates the `Content-Type` is an allowed image/PDF type\n- Rejects files larger than 10 MB\n\nThis prevents users from setting arbitrary external URLs as their avatar/cover image.\n\n## Pagination\n\nList endpoints support pagination via query parameters:\n\n| Parameter | Default | Description |\n|---|---|---|\n| `page` | `1` | Page number (1-indexed) |\n| `pageSize` | `20` | Items per page (max 100) |\n| `search` | \u2014 | Full-text search on the name/title field |\n| `startDate` | \u2014 | Filter items created on/after this date (ISO 8601) |\n| `endDate` | \u2014 | Filter items created on/before this date (ISO 8601) |\n| `sort` | \u2014 | Sort field (e.g. `-createdAt` for descending) |\n\n### Paginated Response Format\n\n```json\n{\n  \"success\": true,\n  \"message\": \"Operation successful\",\n  \"data\": [ ... ],\n  \"meta\": {\n    \"page\": 1,\n    \"pageSize\": 20,\n    \"totalCount\": 42,\n    \"totalPages\": 3,\n    \"hasNext\": true,\n    \"hasPrevious\": false\n  },\n  \"errors\": null\n}\n```\n\n| meta field | Description |\n|---|---|---|\n| `page` | Current page number (1-indexed) |\n| `pageSize` | Items per page |\n| `totalCount` | Total number of items matching the query |\n| `totalPages` | Total number of pages |\n| `hasNext` | Whether there is a next page |\n| `hasPrevious` | Whether there is a previous page |\n\n## Response Format\n\nAll responses use a standard envelope:\n\n```json\n{\n  \"success\": true,\n  \"message\": \"Operation successful\",\n  \"data\": { ... },\n  \"errors\": null\n}\n```\n\n| Field | Description |\n|---|---|\n| `success` | `true` for success, `false` for errors |\n| `message` | Human-readable status message |\n| `data` | Response payload. For paginated endpoints this is the items list directly. |\n| `meta` | Pagination metadata. Present only on paginated list endpoints. |\n| `errors` | Field-level errors (validation) or `null` |\n\n## Status Codes\n\n| Code | Meaning |\n|---|---|\n| `200` | Success |\n| `201` | Created |\n| `204` | No content |\n| `400` | Bad request (malformed JSON, missing required fields) |\n| `401` | Unauthorized (missing or invalid token) |\n| `403` | Forbidden (insufficient permissions) |\n| `404` | Not found |\n| `409` | Conflict (duplicate email, etc.) |\n| `422` | Unprocessable entity (validation failed) |\n| `429` | Too many requests (rate limited) |\n| `500` | Internal server error (unhandled exception) |\n\n## Rate Limiting\n\n| Policy | Limit | Applied to |\n|---|---|---|\n| `auth-strict` | 50 / 5 min per IP | Register, login, refresh, password reset |\n| `api-default` | 100 / min per user | All read endpoints (`GET`) |\n| `write-strict` | 30 / min per user | All write endpoints (`POST`, `PATCH`, `DELETE`) |",
+        "contact": {
+            "name": "API Support",
+            "email": "support@taskr.com"
+        },
+        "version": "v1.0.0"
+    },
+    "paths": {
+        "/": {
+            "get": {
+                "tags": [
+                    "API"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/v1/auth/change-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Change the password of the currently authenticated user.",
+                "description": "Requires the existing password for verification. All refresh tokens for\r\nthe user are invalidated after a successful change.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Authenticate a user and return access + refresh tokens.",
+                "description": "Exchanges an email and password for a short-lived access token and a\r\nlong-lived refresh token. Use the access token in the\r\n`Authorization: Bearer <token>` header on subsequent requests.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokensResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokensResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokensResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/me": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get the currently authenticated user.",
+                "description": "Returns the profile of the user identified by the bearer token.",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/auth/password-reset": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request a password reset OTP via email.",
+                "description": "Sends a one-time code to the supplied email if an account exists.\r\nAlways returns 200 to avoid leaking which addresses are registered.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordResetRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordResetRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordResetRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/password-reset/confirm": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Confirm a password reset using the OTP.",
+                "description": "Submits the OTP emailed via `POST /v1/auth/password-reset` along\r\nwith a new password. The OTP is single-use.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PasswordResetConfirmRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Rotate a refresh token for a new access + refresh pair.",
+                "description": "Submits a valid refresh token to receive a fresh access token and a\r\nnewly rotated refresh token. The previous refresh token is invalidated\r\n(with reuse detection).",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshTokenRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshTokenRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshTokenRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokensResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokensResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthTokensResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new account.",
+                "description": "Creates a new user with the supplied credentials. Returns the created\r\nuser profile. Duplicate email addresses are rejected.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegisterResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegisterResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RegisterResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/files": {
+            "post": {
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Upload one or more files.",
+                "description": "Accepts a `multipart/form-data` body with one or more files in the\r\n`files` field. Each file must be one of the allowed content types\r\nand no larger than 10 MB. The returned URL is what should be stored on\r\nresources (avatar, cover image, task attachments, etc.).",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "files": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                }
+                            },
+                            "encoding": {
+                                "files": {
+                                    "style": "form"
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/FileResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Content Too Large",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "415": {
+                        "description": "Unsupported Media Type",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Files"
+                ],
+                "summary": "Delete a previously uploaded file by URL.",
+                "description": "Removes the underlying object from the configured storage provider.\r\nThe URL must be one previously returned by the upload endpoint and\r\nowned by the calling user.",
+                "parameters": [
+                    {
+                        "name": "url",
+                        "in": "query",
+                        "schema": {
+                            "title": "url",
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "List the authenticated user's projects.",
+                "description": "Returns a paginated list of projects owned by the caller. Supports\r\nsearch, date filtering, and sorting (see query parameters).",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "1-indexed page number. Defaults to `1`.",
+                        "schema": {
+                            "title": "page",
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "description": "Number of items per page. Defaults to `20`, max `100`.",
+                        "schema": {
+                            "title": "pageSize",
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort expression. Prefix a field name with `-` for descending order (e.g. `-createdAt`).",
+                        "schema": {
+                            "title": "sort",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Optional full-text search applied to the primary name/title field of the resource.",
+                        "schema": {
+                            "title": "search",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "description": "Filter results after this date (inclusive). ISO 8601 format.",
+                        "schema": {
+                            "title": "startDate",
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "description": "Filter results before this date (inclusive). ISO 8601 format.",
+                        "schema": {
+                            "title": "endDate",
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponsePagedApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponsePagedApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponsePagedApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create a new project.",
+                "description": "Creates a project owned by the authenticated user. Returns the new\r\nproject resource.",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateProjectRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateProjectRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateProjectRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/projects/{id}": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get a single project by id.",
+                "description": "Returns the project identified by id if the caller owns it.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update a project.",
+                "description": "Partial update. Only the supplied fields are modified. The caller must\r\nown the project.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProjectRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProjectRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateProjectRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ProjectResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete a project.",
+                "description": "Permanently deletes the project and cascades to its tasks. Owner only.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/projects/{projectId}/tasks": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "List tasks for a project.",
+                "description": "Returns a paginated list of tasks belonging to the project identified\r\nby projectId. Supports status, priority, assignee,\r\nand due-date filtering.",
+                "parameters": [
+                    {
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Filter by status (e.g. `Todo`, `InProgress`, `Done`).",
+                        "schema": {
+                            "title": "status",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "priority",
+                        "in": "query",
+                        "description": "Filter by priority (e.g. `Low`, `Medium`, `High`, `Urgent`).",
+                        "schema": {
+                            "title": "priority",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "assigneeId",
+                        "in": "query",
+                        "description": "Filter by assignee user id.",
+                        "schema": {
+                            "title": "assigneeId",
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "dueDateFrom",
+                        "in": "query",
+                        "description": "Filter tasks due on/after this date (ISO 8601).",
+                        "schema": {
+                            "title": "dueDateFrom",
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "dueDateTo",
+                        "in": "query",
+                        "description": "Filter tasks due on/before this date (ISO 8601).",
+                        "schema": {
+                            "title": "dueDateTo",
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "1-indexed page number. Defaults to `1`.",
+                        "schema": {
+                            "title": "page",
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "description": "Number of items per page. Defaults to `20`, max `100`.",
+                        "schema": {
+                            "title": "pageSize",
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Sort expression. Prefix a field name with `-` for descending order (e.g. `-createdAt`).",
+                        "schema": {
+                            "title": "sort",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Optional full-text search applied to the primary name/title field of the resource.",
+                        "schema": {
+                            "title": "search",
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "startDate",
+                        "in": "query",
+                        "description": "Filter results after this date (inclusive). ISO 8601 format.",
+                        "schema": {
+                            "title": "startDate",
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "endDate",
+                        "in": "query",
+                        "description": "Filter results before this date (inclusive). ISO 8601 format.",
+                        "schema": {
+                            "title": "endDate",
+                            "type": "string",
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponsePagedApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponsePagedApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponsePagedApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create a task in a project.",
+                "description": "Creates a new task under the project identified by\r\nprojectId. The caller must own the project.",
+                "parameters": [
+                    {
+                        "name": "projectId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTaskRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTaskRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateTaskRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/tasks/{id}": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Get a task by id.",
+                "description": "Returns the task identified by id if the caller owns its project.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Update a task.",
+                "description": "Partial update. Only the supplied fields are modified. Moving a task\r\nto status `Done` sets `completedAt`; moving it out clears it.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateTaskRequest"
+                            }
+                        },
+                        "text/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateTaskRequest"
+                            }
+                        },
+                        "application/*+json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateTaskRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TaskResponseApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Content",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Delete a task.",
+                "description": "Permanently deletes the task. Project owner only.",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Too Many Requests",
+                        "content": {
+                            "text/plain": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            },
+                            "text/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ObjectApiResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AuthTokensResponse": {
+                "type": "object",
+                "properties": {
+                    "accessToken": {
+                        "type": "string",
+                        "description": "Short-lived JWT used in the `Authorization` header.",
+                        "nullable": true
+                    },
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "Long-lived token used to obtain new access tokens via the refresh endpoint.",
+                        "nullable": true
+                    },
+                    "accessTokenExpiresAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) at which the access token expires.",
+                        "format": "date-time"
+                    },
+                    "refreshTokenExpiresAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) at which the refresh token expires.",
+                        "format": "date-time"
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/UserResponse"
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Access + refresh token pair returned by login and refresh endpoints."
+            },
+            "AuthTokensResponseApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/AuthTokensResponse"
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            },
+            "ChangePasswordRequest": {
+                "type": "object",
+                "properties": {
+                    "oldPassword": {
+                        "type": "string",
+                        "description": "The user's current password, required for verification.",
+                        "nullable": true
+                    },
+                    "newPassword": {
+                        "type": "string",
+                        "description": "The new password to set on the account.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/auth/change-password`."
+            },
+            "CreateProjectRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Display name of the project. Required.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional longer description shown on the project page.",
+                        "nullable": true
+                    },
+                    "coverImageUrl": {
+                        "type": "string",
+                        "description": "Optional cover image URL. Must be uploaded via `POST /v1/files`.",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Optional free-form key/value metadata stored on the project.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/projects`."
+            },
+            "CreateTaskRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Short title describing the task. Required.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional longer description or notes for the task.",
+                        "nullable": true
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Optional list of attachment URLs uploaded via `POST /v1/files`.",
+                        "nullable": true
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/TaskPriority"
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "description": "Optional due date (ISO 8601, UTC).",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "assigneeId": {
+                        "type": "string",
+                        "description": "Optional user id to assign the task to. Must be a known user.",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Optional free-form key/value metadata stored on the task.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/projects/{projectId}/tasks`."
+            },
+            "FileResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Server-generated identifier for the file record.",
+                        "nullable": true
+                    },
+                    "url": {
+                        "type": "string",
+                        "description": "Publicly accessible URL where the file can be fetched. Store this on the owning resource.",
+                        "nullable": true
+                    },
+                    "originalFilename": {
+                        "type": "string",
+                        "description": "The filename provided by the client at upload time.",
+                        "nullable": true
+                    },
+                    "fileSize": {
+                        "type": "integer",
+                        "description": "File size in bytes.",
+                        "format": "int64"
+                    },
+                    "fileSizeDisplay": {
+                        "type": "string",
+                        "description": "Human-readable file size (e.g. `12.1 KB`).",
+                        "nullable": true,
+                        "readOnly": true
+                    },
+                    "contentType": {
+                        "type": "string",
+                        "description": "MIME type of the uploaded file.",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the file was uploaded.",
+                        "format": "date-time"
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Response for a single uploaded file."
+            },
+            "FileResponseApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/FileResponse"
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            },
+            "LoginRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Account email address.",
+                        "nullable": true
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Account password in plaintext (sent over TLS).",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/auth/login`."
+            },
+            "ObjectApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "description": "Response payload. For paginated responses this is the items list directly.",
+                        "nullable": true
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            },
+            "PaginationMeta": {
+                "type": "object",
+                "properties": {
+                    "page": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "pageSize": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "totalCount": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "totalPages": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "hasNext": {
+                        "type": "boolean"
+                    },
+                    "hasPrevious": {
+                        "type": "boolean"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "PasswordResetConfirmRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Email address of the account being recovered.",
+                        "nullable": true
+                    },
+                    "otp": {
+                        "type": "string",
+                        "description": "6-digit one-time code sent to the user's email.",
+                        "nullable": true
+                    },
+                    "newPassword": {
+                        "type": "string",
+                        "description": "The new password to set on the account.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/auth/password-reset/confirm`."
+            },
+            "PasswordResetRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Email address of the account to recover. Must exist.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/auth/password-reset`."
+            },
+            "ProjectResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique project identifier.",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Display name of the project.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Longer description of the project, if any.",
+                        "nullable": true
+                    },
+                    "coverImageUrl": {
+                        "type": "string",
+                        "description": "Optional cover image URL.",
+                        "nullable": true
+                    },
+                    "ownerId": {
+                        "type": "string",
+                        "description": "Identifier of the user who owns the project.",
+                        "format": "uuid"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the project was created.",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the project was last updated.",
+                        "format": "date-time"
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Free-form key/value metadata attached to the project.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Project resource returned by project endpoints."
+            },
+            "ProjectResponseApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ProjectResponse"
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            },
+            "ProjectResponsePagedApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ProjectResponse"
+                        },
+                        "description": "Response payload. For paginated responses this is the items list directly.",
+                        "nullable": true
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Success response envelope for paginated list endpoints."
+            },
+            "RefreshTokenRequest": {
+                "type": "object",
+                "properties": {
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "The refresh token previously issued by login or a prior refresh call.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/auth/refresh`."
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "description": "Unique email address. Used as the login identifier.",
+                        "nullable": true
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Account password. Stored as a bcrypt hash server-side.",
+                        "nullable": true
+                    },
+                    "firstName": {
+                        "type": "string",
+                        "description": "Given name shown in the UI.",
+                        "nullable": true
+                    },
+                    "lastName": {
+                        "type": "string",
+                        "description": "Family name shown in the UI.",
+                        "nullable": true
+                    },
+                    "avatarUrl": {
+                        "type": "string",
+                        "description": "Optional avatar image URL. Must be uploaded via `POST /v1/files`.",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Optional free-form key/value metadata stored on the user record.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `POST /v1/auth/register`."
+            },
+            "RegisterResponse": {
+                "type": "object",
+                "properties": {
+                    "user": {
+                        "$ref": "#/components/schemas/UserResponse"
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Response envelope for `POST /v1/auth/register`."
+            },
+            "RegisterResponseApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/RegisterResponse"
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            },
+            "TaskItemStatus": {
+                "enum": [
+                    "todo",
+                    "inProgress",
+                    "inReview",
+                    "done",
+                    "archived"
+                ],
+                "type": "string",
+                "description": "Lifecycle status of a task."
+            },
+            "TaskPriority": {
+                "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "urgent"
+                ],
+                "type": "string",
+                "description": "Priority level of a task. Used for sorting and filtering."
+            },
+            "TaskResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique task identifier.",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Short title describing the task.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Optional longer description or notes.",
+                        "nullable": true
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "List of attachment URLs.",
+                        "nullable": true
+                    },
+                    "projectId": {
+                        "type": "string",
+                        "description": "Identifier of the project the task belongs to.",
+                        "format": "uuid"
+                    },
+                    "projectName": {
+                        "type": "string",
+                        "description": "Display name of the project the task belongs to.",
+                        "nullable": true
+                    },
+                    "assigneeId": {
+                        "type": "string",
+                        "description": "Identifier of the assigned user, if any.",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "assigneeName": {
+                        "type": "string",
+                        "description": "Display name of the assigned user, if any.",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TaskItemStatus"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/TaskPriority"
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "description": "Optional due date (ISO 8601, UTC).",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the task was created.",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the task was last updated.",
+                        "format": "date-time"
+                    },
+                    "completedAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the task was moved to `Done`, if ever.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Free-form key/value metadata attached to the task.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Task resource returned by task endpoints."
+            },
+            "TaskResponseApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/TaskResponse"
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            },
+            "TaskResponsePagedApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TaskResponse"
+                        },
+                        "description": "Response payload. For paginated responses this is the items list directly.",
+                        "nullable": true
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/PaginationMeta"
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Success response envelope for paginated list endpoints."
+            },
+            "UpdateProjectRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "New project name. Omit to leave unchanged.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description. Pass an empty string to clear.",
+                        "nullable": true
+                    },
+                    "coverImageUrl": {
+                        "type": "string",
+                        "description": "New cover image URL. Pass an empty string to clear.",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Replacement metadata. Pass an empty object to clear.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `PATCH /v1/projects/{id}`. All fields are optional."
+            },
+            "UpdateTaskRequest": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "New title.",
+                        "nullable": true
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "New description. Pass an empty string to clear.",
+                        "nullable": true
+                    },
+                    "attachments": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Replacement attachment URL list. Pass an empty list to clear.",
+                        "nullable": true
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TaskItemStatus"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/TaskPriority"
+                    },
+                    "dueDate": {
+                        "type": "string",
+                        "description": "New due date. Pass null to clear.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "assigneeId": {
+                        "type": "string",
+                        "description": "New assignee. Pass null to unassign.",
+                        "format": "uuid",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Replacement metadata. Pass an empty object to clear.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Payload for `PATCH /v1/tasks/{id}`. All fields are optional."
+            },
+            "UserResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "description": "Unique user identifier.",
+                        "format": "uuid"
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Account email address.",
+                        "nullable": true
+                    },
+                    "firstName": {
+                        "type": "string",
+                        "description": "Given name.",
+                        "nullable": true
+                    },
+                    "lastName": {
+                        "type": "string",
+                        "description": "Family name.",
+                        "nullable": true
+                    },
+                    "avatarUrl": {
+                        "type": "string",
+                        "description": "Optional avatar image URL.",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the user record was created.",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) the user record was last updated.",
+                        "format": "date-time"
+                    },
+                    "lastLoginAt": {
+                        "type": "string",
+                        "description": "Timestamp (UTC) of the user's most recent successful login, if any.",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "nullable": true
+                        },
+                        "description": "Free-form key/value metadata attached to the user record.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Public-facing user profile returned by auth and user endpoints."
+            },
+            "UserResponseApiResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "description": "Always `true` for success responses."
+                    },
+                    "message": {
+                        "type": "string",
+                        "description": "Short human-readable status message (e.g. `Operation successful`).",
+                        "nullable": true
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/UserResponse"
+                    },
+                    "errors": {
+                        "description": "Field-level errors, or `null` for success responses.",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": false,
+                "description": "Standard success response envelope. Every successful API response is\r\nwrapped in this shape so the client always sees the same top-level\r\nstructure."
+            }
+        },
+        "securitySchemes": {
+            "Bearer": {
+                "type": "http",
+                "description": "JWT Authorization header using the Bearer scheme.",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Account creation, login, refresh, and password recovery."
+        },
+        {
+            "name": "Projects",
+            "description": "Project lifecycle: list, create, read, update, and delete."
+        },
+        {
+            "name": "Tasks",
+            "description": "Task lifecycle scoped to a project: list, create, read, update, delete."
+        },
+        {
+            "name": "Files",
+            "description": "Multipart file upload and deletion for user-uploaded assets."
+        },
+        {
+            "name": "Health",
+            "description": "Liveness and dependency health probes."
+        },
+        {
+            "name": "API",
+            "description": "Root and utility endpoints."
+        }
+    ]
+}

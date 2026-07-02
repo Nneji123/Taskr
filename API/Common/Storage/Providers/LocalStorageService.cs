@@ -39,4 +39,6 @@ public class LocalStorageService(IOptions<StorageOptions> options, IWebHostEnvir
     }
 
     public string GetUrl(string key) => $"{_settings.BaseUrl}/{key}";
+
+    public string GetSignedUrl(string key, TimeSpan expiresIn) => GetUrl(key);
 }

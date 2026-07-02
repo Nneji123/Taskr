@@ -10,7 +10,11 @@ public class FileResponse
     [JsonPropertyName("id")]
     public string Id { get; set; } = string.Empty;
 
-    /// <summary>Publicly accessible URL where the file can be fetched. Store this on the owning resource.</summary>
+    /// <summary>Storage key (S3 object key). Use this to request new signed URLs via <c>GET /v1/files/signed-url</c>.</summary>
+    [JsonPropertyName("key")]
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>Time-limited signed URL granting read access to the file.</summary>
     [JsonPropertyName("url")]
     public string Url { get; set; } = string.Empty;
 
@@ -46,4 +50,24 @@ public class FileResponse
         }
         return $"{size:0.#} {units[i]}";
     }
+}
+
+/// <summary>Response payload for a generated pre-signed URL.</summary>
+public class SignedUrlResponse
+{
+    /// <summary>The pre-signed URL granting time-limited read access.</summary>
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = string.Empty;
+
+    /// <summary>The storage key the URL was generated for.</summary>
+    [JsonPropertyName("key")]
+    public string Key { get; set; } = string.Empty;
+
+    /// <summary>Actual TTL the server applied, in seconds.</summary>
+    [JsonPropertyName("ttlSeconds")]
+    public int TtlSeconds { get; set; }
+
+    /// <summary>Timestamp (UTC) at which the URL stops being valid.</summary>
+    [JsonPropertyName("expiresAt")]
+    public DateTime ExpiresAt { get; set; }
 }

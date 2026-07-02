@@ -52,6 +52,8 @@ public class CloudinaryStorageService : IStorageService
 
     public string GetUrl(string key) => $"https://res.cloudinary.com/{_c.CloudName}/image/upload/{_c.Folder}/{key}";
 
+    public string GetSignedUrl(string key, TimeSpan expiresIn) => GetUrl(key);
+
     private static string? ExtractPublicId(string url)
     {
         var uri = new Uri(url);
