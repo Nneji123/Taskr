@@ -8,18 +8,6 @@ Authorization: Bearer <your_access_token_here>
 
 Get an access token by calling `POST /v1/auth/login` with your email and password. Use the returned `refreshToken` to obtain new tokens via `POST /v1/auth/refresh` (rotated on use, with reuse detection).
 
-### Auth Endpoints
-
-| Endpoint | Description |
-|---|---|
-| `POST /v1/auth/register` | Create a new account |
-| `POST /v1/auth/login` | Exchange credentials for access + refresh tokens |
-| `POST /v1/auth/refresh` | Rotate refresh token for a new access + refresh pair |
-| `GET /v1/auth/me` | Get the currently authenticated user |
-| `POST /v1/auth/password-reset` | Request a 6-digit OTP via email |
-| `POST /v1/auth/password-reset/confirm` | Submit OTP + new password |
-| `POST /v1/auth/change-password` | Authenticated password change (requires old password) |
-
 ## File Fields and Uploads
 
 All file fields in the API (such as `avatarUrl`, `coverImageUrl`, `attachments`) expect **URLs** as values, not file objects. To upload a file:
@@ -70,15 +58,6 @@ When a URL is submitted in a file field (e.g. `coverImageUrl`), the API:
 - Rejects files larger than 10 MB
 
 This prevents users from setting arbitrary external URLs as their avatar/cover image.
-
-## Projects and Tasks
-
-| Resource | Endpoints |
-|---|---|
-| **Projects** | `GET /v1/projects`, `POST /v1/projects`, `GET /v1/projects/{id}`, `PATCH /v1/projects/{id}`, `DELETE /v1/projects/{id}` |
-| **Tasks** | `GET /v1/projects/{projectId}/tasks`, `POST /v1/projects/{projectId}/tasks`, `GET /v1/tasks/{id}`, `PATCH /v1/tasks/{id}`, `DELETE /v1/tasks/{id}` |
-
-All resources are **owner-scoped**: you can only read, update, or delete resources you own.
 
 ## Pagination
 
@@ -165,20 +144,3 @@ All responses use a standard envelope:
 | `auth-strict` | 50 / 5 min per IP | Register, login, refresh, password reset |
 | `api-default` | 100 / min per user | All read endpoints (`GET`) |
 | `write-strict` | 30 / min per user | All write endpoints (`POST`, `PATCH`, `DELETE`) |
-
-## CLI Commands
-
-Administrative commands are run via the same Docker image:
-
-```bash
-# List available commands
-docker exec taskr-api-1 dotnet API.dll cli
-
-# Seed default admin user
-docker exec taskr-api-1 dotnet API.dll cli seed:admin
-```
-
-## Support
-
-- **Email:** support@taskr.com
-- **Version:** v1.0.0
