@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FluentValidation;
 
 namespace API.Common;
@@ -10,21 +11,27 @@ namespace API.Common;
 public class PagedRequest
 {
     /// <summary>1-indexed page number. Defaults to <c>1</c>.</summary>
+    [JsonPropertyName("page")]
     public int Page { get; set; } = 1;
 
     /// <summary>Number of items per page. Defaults to <c>20</c>, max <c>100</c>.</summary>
+    [JsonPropertyName("pageSize")]
     public int PageSize { get; set; } = 20;
 
     /// <summary>Sort expression. Prefix a field name with <c>-</c> for descending order (e.g. <c>-createdAt</c>).</summary>
+    [JsonPropertyName("sort")]
     public string? Sort { get; set; }
 
     /// <summary>Optional full-text search applied to the primary name/title field of the resource.</summary>
+    [JsonPropertyName("search")]
     public string? Search { get; set; }
 
     /// <summary>Filter results after this date (inclusive). ISO 8601 format.</summary>
+    [JsonPropertyName("startDate")]
     public DateTime? StartDate { get; set; }
 
     /// <summary>Filter results before this date (inclusive). ISO 8601 format.</summary>
+    [JsonPropertyName("endDate")]
     public DateTime? EndDate { get; set; }
 }
 

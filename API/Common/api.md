@@ -99,18 +99,25 @@ List endpoints support pagination via query parameters:
 {
   "success": true,
   "message": "Operation successful",
-  "data": {
-    "items": [ ... ],
-    "page": 1,
-    "pageSize": 20,
-    "totalCount": 42,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrevious": false
+  "data": [ ... ],
+  "meta": {
+    "count": 20,
+    "total_items_count": 42,
+    "next": 2,
+    "previous": null,
+    "page_size": 20
   },
   "errors": null
 }
 ```
+
+| meta field | Description |
+|---|---|
+| `count` | Number of items on the current page |
+| `total_items_count` | Total number of items matching the query |
+| `next` | Next page number, or `null` if on the last page |
+| `previous` | Previous page number, or `null` if on the first page |
+| `page_size` | Items per page (matches the `pageSize` query param) |
 
 ## Response Format
 
@@ -129,7 +136,8 @@ All responses use a standard envelope:
 |---|---|
 | `success` | `true` for success, `false` for errors |
 | `message` | Human-readable status message |
-| `data` | Response payload (any type, or `null` on errors) |
+| `data` | Response payload. For paginated endpoints this is the items list directly. |
+| `meta` | Pagination metadata. Present only on paginated list endpoints. |
 | `errors` | Field-level errors (validation) or `null` |
 
 ## Status Codes

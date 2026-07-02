@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using API.Common;
 using API.Features.Tasks.Models;
 
@@ -60,17 +61,22 @@ public class UpdateTaskRequest
 public class TaskListQuery : PagedRequest
 {
     /// <summary>Filter by status (e.g. <c>Todo</c>, <c>InProgress</c>, <c>Done</c>).</summary>
+    [JsonPropertyName("status")]
     public string? Status { get; set; }
 
     /// <summary>Filter by priority (e.g. <c>Low</c>, <c>Medium</c>, <c>High</c>, <c>Urgent</c>).</summary>
+    [JsonPropertyName("priority")]
     public string? Priority { get; set; }
 
     /// <summary>Filter by assignee user id.</summary>
+    [JsonPropertyName("assigneeId")]
     public Guid? AssigneeId { get; set; }
 
     /// <summary>Filter tasks due on/after this date (ISO 8601).</summary>
+    [JsonPropertyName("dueDateFrom")]
     public DateTime? DueDateFrom { get; set; }
 
     /// <summary>Filter tasks due on/before this date (ISO 8601).</summary>
+    [JsonPropertyName("dueDateTo")]
     public DateTime? DueDateTo { get; set; }
 }

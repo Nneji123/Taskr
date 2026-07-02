@@ -16,6 +16,27 @@ public abstract class BaseController(ICurrentUser currentUser) : ControllerBase
     protected IActionResult OkResult<T>(T data, string message = "Operation successful")
         => Ok(ApiResponse<T>.Ok(data, message));
 
+    /// <summary>Shortcut to create a 200 OK paginated response. <c>data</c> is the items list, <c>meta</c> holds pagination info.</summary>
+    protected IActionResult PaginatedResult<T>(PagedResult<T> result, string message = "Operation successful")
+    {
+        var meta = new PaginationMeta
+        {
+            Count = result.Items.Count,
+            TotalItemsCount = result.TotalCount,
+            Next = result.HasNext ? result.Page + 1 : null,
+            Previous = result.HasPrevious ? result.Page - 1 : null,
+            PageSize = result.PageSize
+        };
+        return Ok(new ApiResponse<IReadOnlyList<T>>
+        {
+            Success = true,
+            Message = message,
+            Data = result.Items,
+            Meta = meta,
+            Status = 200
+        });
+    }
+
     /// <summary>Shortcut to create a 201 Created response.</summary>
     protected IActionResult CreatedResult<T>(T data, string message = "Created successfully")
         => StatusCode(201, ApiResponse<T>.Ok(data, message));

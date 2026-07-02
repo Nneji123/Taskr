@@ -2,6 +2,24 @@ using System.Text.Json.Serialization;
 
 namespace API.Common;
 
+public class PaginationMeta
+{
+    [JsonPropertyName("count")]
+    public int Count { get; set; }
+
+    [JsonPropertyName("total_items_count")]
+    public int TotalItemsCount { get; set; }
+
+    [JsonPropertyName("next")]
+    public int? Next { get; set; }
+
+    [JsonPropertyName("previous")]
+    public int? Previous { get; set; }
+
+    [JsonPropertyName("page_size")]
+    public int PageSize { get; set; }
+}
+
 /// <summary>
 /// Standard success response envelope. Every successful API response is
 /// wrapped in this shape so the client always sees the same top-level
@@ -18,9 +36,14 @@ public class ApiResponse<TData>
     [JsonPropertyName("message")]
     public string Message { get; set; } = "Operation successful";
 
-    /// <summary>Response payload, or <c>null</c> for operations that return no data.</summary>
+    /// <summary>Response payload. For paginated responses this is the items list directly.</summary>
     [JsonPropertyName("data")]
     public TData? Data { get; set; }
+
+    /// <summary>Pagination metadata. Only present on paginated list endpoints.</summary>
+    [JsonPropertyName("meta")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PaginationMeta? Meta { get; set; }
 
     /// <summary>Field-level errors, or <c>null</c> for success responses.</summary>
     [JsonPropertyName("errors")]

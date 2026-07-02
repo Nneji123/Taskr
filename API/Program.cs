@@ -186,6 +186,9 @@ try
         // Descriptions shown when a tag is expanded in Swagger UI.
         c.DocumentFilter<API.Common.Swagger.TagDescriptionsDocumentFilter>();
 
+        // Query parameters displayed in camelCase (e.g. "pageSize" not "PageSize").
+        c.ParameterFilter<API.Common.Swagger.CamelCaseQueryParameterFilter>();
+
         c.OrderActionsBy(api => api.RelativePath);
 
         c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
