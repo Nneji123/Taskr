@@ -9,7 +9,7 @@
 A production-shaped, showcase-grade authentication and task-tracker API built with
 ASP.NET Core 10. The project is a learning artifact for C# and the ASP.NET Core
 ecosystem, but it follows the same architectural patterns used in three of the
-author's existing production projects (Bounti/Django, straqa/Django, errandigo/NestJS):
+author's existing production projects:
 
 - bounded-context feature folders
 - layered (Controller → Service → DbContext)
@@ -189,7 +189,7 @@ taskr/
 
 | Reference concept | This project |
 |---|---|
-| `apps/accounts/` (Bounti/Straqa) | `Features/Auth/` |
+| `apps/accounts/` (prior projects) | `Features/Auth/` |
 | `apps/accounts/services.py` | `Features/Auth/AuthService.cs` |
 | `apps/accounts/serializers/auth.py` | `Features/Auth/DTOs/` + `Features/Auth/Validators/` |
 | `apps/core/mixins.py` (ResponseMixin) | `Common/ApiResponseFilter.cs` |
@@ -536,9 +536,9 @@ ENTRYPOINT ["dotnet", "API.dll"]
 
 ## 19. References
 
-- Bounti backend (Django) — `apps/accounts/`, `apps/core/mixins.py`, `apps/core/middlewares.py`
-- errandigo backend (NestJS) — `src/shared/services/auth.service.ts`, `src/swagger.ts`, `src/database/ormconfig.ts`
-- straqa-api (Django) — `apps/accounts/mixins/login.py`, `apps/core/responses.py`, `compose.yml`
+- Prior Django projects — `apps/accounts/`, `apps/core/mixins.py`, `apps/core/middlewares.py`
+- Prior NestJS project — `src/shared/services/auth.service.ts`, `src/swagger.ts`, `src/database/ormconfig.ts`
+- Prior Django API — `apps/accounts/mixins/login.py`, `apps/core/responses.py`, `compose.yml`
 - ASP.NET Core best practices — <https://learn.microsoft.com/aspnet/core/fundamentals/best-practices>
 - JWT bearer authentication in ASP.NET Core — <https://learn.microsoft.com/aspnet/core/security/authentication/configure-jwt-bearer-authentication>
 - Docker for .NET — <https://learn.microsoft.com/aspnet/core/host-and-deploy/docker/building-net-docker-images>

@@ -179,7 +179,7 @@ STORAGE__PROVIDER=s3 | cloudinary | local
 | `s3` | Production | AWS S3 with public-read ACL |
 | `cloudinary` | Production | Cloudinary CDN with transformations |
 
-Files are uploaded per the straqa/gefe pattern: client uploads → service returns URL → URL is stored on the entity. See `docs/running.md` for the upload flow.
+Files follow an upload-first pattern: client uploads → service returns URL → URL is stored on the entity. See `docs/running.md` for the upload flow.
 
 ## Scheduled Tasks
 
@@ -193,7 +193,7 @@ New tasks extend `BaseScheduledTask`, provide a cron expression, and register wi
 
 ## CLI Commands
 
-CLI commands use the `CliCommand` base class with `[Command]` and `[CommandGroup]` attributes, mirroring errandigo's `nestjs-command` pattern:
+CLI commands use the `CliCommand` base class with `[Command]` and `[CommandGroup]` attributes:
 
 ```
 docker exec <container> dotnet API.dll cli seed:admin
@@ -265,7 +265,7 @@ API/
 
 2. **Feature folders over module folders** — Each feature is self-contained. If we need to extract a feature into its own microservice later, we literally move the folder.
 
-3. **No service interfaces file per file** — Each feature's services implement an interface at the top of the same file. Clean and discoverable. Following the errandigo pattern.
+3. **No service interfaces file per file** — Each feature's services implement an interface at the top of the same file. Clean and discoverable.
 
 4. **Email provider-switchable at startup** — Configured via `Email:Provider` env var. Same pattern as storage. Providers are registered as scoped services and selected by a factory lambda.
 

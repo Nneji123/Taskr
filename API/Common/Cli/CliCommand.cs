@@ -31,8 +31,7 @@ public abstract class CliCommand
 }
 
 /// <summary>
-/// Attribute applied to CLI commands to set their sub-command grouping,
-/// mirroring errandigo's @Command({ command: "seed:roles" }) pattern.
+/// Attribute applied to CLI commands to set their sub-command grouping.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
 public class CommandGroupAttribute(string group) : Attribute

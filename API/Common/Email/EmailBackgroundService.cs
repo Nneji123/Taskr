@@ -4,7 +4,7 @@ namespace API.Common.Email;
 /// Background service that consumes email queue entries and sends them via the
 /// configured IEmailService provider. This replaces ad-hoc Task.Run fire-and-forget
 /// calls with a proper producer/consumer pattern.
-/// Matches errandigo's BullMQ NotificationConsumer pattern, but in-process.
+/// Uses a producer/consumer pattern with a thread-safe queue.
 /// </summary>
 public class EmailBackgroundService(
     IEmailQueue queue,

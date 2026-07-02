@@ -295,7 +295,7 @@ try
     app.UseAuthorization();
     app.MapControllers();
     app.MapHealthChecks("/health");
-    app.MapGet("/", () => Results.Redirect("/scalar/v1"));
+    app.MapGet("/", () => Results.Redirect("/scalar/"));
 
     // Auto-migrate on startup
     using (var scope = app.Services.CreateScope())

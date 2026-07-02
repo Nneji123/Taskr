@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 namespace API.Common.Scheduler;
 
 /// <summary>
-/// Base class for cron-scheduled background tasks (like errandigo's BaseCronTask).
+/// Base class for cron-scheduled background tasks.
 /// Override <see cref="ExecuteAsync"/> with the work to perform.
 /// The cron expression is read from configuration via the provided config key,
 /// with a hard-coded fallback.

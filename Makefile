@@ -134,7 +134,7 @@ mailpit: ## Open Mailpit (email catcher) in the default browser
 
 .PHONY: scalar
 scalar: ## Open Scalar API Reference in the default browser
-	@open http://localhost:5001/scalar/v1 2>/dev/null || xdg-open http://localhost:5001/scalar/v1 2>/dev/null || echo "Scalar: http://localhost:5001/scalar/v1"
+	@open http://localhost:5001/scalar/ 2>/dev/null || xdg-open http://localhost:5001/scalar/ 2>/dev/null || echo "Scalar: http://localhost:5001/scalar/"
 
 .PHONY: swagger
 swagger: ## Open Swagger UI in the default browser
