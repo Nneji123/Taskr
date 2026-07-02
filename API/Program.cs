@@ -278,15 +278,13 @@ try
         c.DocumentTitle = "Taskr API — Swagger UI";
         c.DisplayRequestDuration();
     });
-    app.MapScalarApiReference((options, ctx) =>
+    app.MapScalarApiReference(options =>
     {
-        var scheme = ctx.Request.Scheme;
-        var host = ctx.Request.Host;
         options
             .WithTitle("Taskr API")
             .WithTheme(ScalarTheme.Moon)
-            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
-        options.WithOpenApiRoutePattern($"{scheme}://{host}/swagger/v1/swagger.json");
+            .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
+            .WithOpenApiRoutePattern("/swagger/v1/swagger.json");
     });
 
     app.UseCors(b => b.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
