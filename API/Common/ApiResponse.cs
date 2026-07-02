@@ -43,11 +43,6 @@ public class ApiResponse<TData>
     [JsonPropertyName("data")]
     public TData? Data { get; set; }
 
-    /// <summary>Pagination metadata. Only present on paginated list endpoints.</summary>
-    [JsonPropertyName("meta")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public PaginationMeta? Meta { get; set; }
-
     /// <summary>Field-level errors, or <c>null</c> for success responses.</summary>
     [JsonPropertyName("errors")]
     public object? Errors { get; set; }
@@ -68,6 +63,19 @@ public class ApiResponse<TData>
         Success = true, Message = message, Data = data, Status = 201
     };
 }
+
+/// <summary>
+/// Success response envelope for paginated list endpoints.
+/// </summary>
+/// <typeparam name="TData">Type of the items in the response payload.</typeparam>
+public class PagedApiResponse<TData> : ApiResponse<IReadOnlyList<TData>>
+{
+    /// <summary>Pagination metadata. Only present on paginated list endpoints.</summary>
+    [JsonPropertyName("meta")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public PaginationMeta? Meta { get; set; }
+}
+
 
 /// <summary>Error response envelope used for non-validation failures.</summary>
 public class ApiErrorResponse

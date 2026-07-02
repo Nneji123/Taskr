@@ -22,7 +22,7 @@ public class TasksController(ITasksService tasksService, ICurrentUser currentUse
     /// and due-date filtering.
     /// </remarks>
     [HttpGet("v1/projects/{projectId:guid}/tasks")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<TaskResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedApiResponse<TaskResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> List(Guid projectId, [FromQuery] TaskListQuery query, CancellationToken ct)

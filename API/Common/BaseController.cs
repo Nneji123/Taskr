@@ -28,7 +28,7 @@ public abstract class BaseController(ICurrentUser currentUser) : ControllerBase
             HasNext = result.HasNext,
             HasPrevious = result.HasPrevious
         };
-        return Ok(new ApiResponse<IReadOnlyList<T>>
+        return Ok(new PagedApiResponse<T>
         {
             Success = true,
             Message = message,

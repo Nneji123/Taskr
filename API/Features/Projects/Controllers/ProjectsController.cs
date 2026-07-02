@@ -22,7 +22,7 @@ public class ProjectsController(IProjectsService projectsService, ICurrentUser c
     /// search, date filtering, and sorting (see query parameters).
     /// </remarks>
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ProjectResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedApiResponse<ProjectResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> List([FromQuery] ProjectListQuery query, CancellationToken ct)
     {

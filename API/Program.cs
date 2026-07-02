@@ -200,20 +200,7 @@ try
             In = Microsoft.OpenApi.Models.ParameterLocation.Header,
             Description = "JWT Authorization header using the Bearer scheme."
         });
-        c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-        {
-            {
-                new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-                {
-                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                    {
-                        Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                        Id = "Bearer"
-                    }
-                },
-                Array.Empty<string>()
-            }
-        });
+        c.OperationFilter<API.Common.Swagger.SecurityRequirementsOperationFilter>();
     });
 
     // Sentry
