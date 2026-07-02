@@ -20,10 +20,10 @@ cp .env.example .env
 docker compose up -d --build
 
 # 4. Verify health
-curl http://localhost:8080/health
+curl http://localhost:5001/health
 
 # 5. Open the API reference
-open http://localhost:8080/scalar/v1
+open http://localhost:5001/scalar/v1
 ```
 
 ## Running Without Docker
@@ -36,7 +36,7 @@ docker compose up -d postgres redis mailpit
 cd API
 ASPNETCORE_ENVIRONMENT=Development dotnet run
 
-# OpenAPI: http://localhost:5000/scalar/v1
+# OpenAPI: http://localhost:5001/scalar/v1
 ```
 
 ## Project Structure
@@ -116,12 +116,12 @@ Mailpit runs at http://localhost:8025 for catching test emails.
 
 ```bash
 # Register
-curl -X POST http://localhost:8080/v1/auth/register \
+curl -X POST http://localhost:5001/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"email":"test@example.com","password":"Test1234!","firstName":"Jane","lastName":"Doe"}'
 
 # Login
-curl -X POST http://localhost:8080/v1/auth/login \
+curl -X POST http://localhost:5001/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"test@example.com","password":"Test1234!"}'
 ```

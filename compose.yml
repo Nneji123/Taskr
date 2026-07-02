@@ -30,7 +30,7 @@ services:
       redis: { condition: service_healthy }
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      ASPNETCORE_URLS: http://+:8080
+      ASPNETCORE_URLS: http://+:5001
       DATABASE__CONNECTIONSTRING: Host=postgres;Port=5432;Database=${POSTGRES_DB:-taskr};Username=${POSTGRES_USER:-taskr};Password=${POSTGRES_PASSWORD:-changeme}
       REDIS__CONNECTIONSTRING: redis:6379
       JWT__SECRET: ${JWT__SECRET}
@@ -44,7 +44,7 @@ services:
       EMAIL__SMTP__USETLS: "false"
       EMAIL__SMTP__FROM: noreply@taskr.local
       EMAIL__SMTP__FROMNAME: Taskr
-    ports: ["8080:8080"]
+    ports: ["5001:5001"]
     volumes: [dpapi-keys:/home/app/.aspnet/DataProtection-Keys]
     restart: unless-stopped
 

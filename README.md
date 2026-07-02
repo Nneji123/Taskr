@@ -25,8 +25,8 @@ cp .env.example .env
 make up
 
 # 3. Open the API
-make docs              # http://localhost:8080/scalar/v1
-make swagger           # http://localhost:8080/swagger (fallback)
+make docs              # http://localhost:5001/scalar/v1
+make swagger           # http://localhost:5001/swagger (fallback)
 make mailpit           # http://localhost:8025 (catches emails)
 
 # 4. Seed an admin user

@@ -10,16 +10,22 @@ namespace API.Features.Auth.Models;
 /// </summary>
 public class User : BaseModel
 {
-    /// <summary>Unique email address. Used as the login identifier.</summary>
+    /// <summary>Unique email address. Used as the login identifier. Encrypted at rest.</summary>
+    [EncryptedPersonalData]
     public string Email { get; set; } = string.Empty;
+
+    /// <summary>SHA-256 hash of the normalized email. Used for unique lookups without decrypting.</summary>
+    public string EmailHash { get; set; } = string.Empty;
 
     /// <summary>Bcrypt hash of the user's password. Never returned in API responses.</summary>
     public string PasswordHash { get; set; } = string.Empty;
 
-    /// <summary>Given name.</summary>
+    /// <summary>Given name. Encrypted at rest.</summary>
+    [EncryptedPersonalData]
     public string FirstName { get; set; } = string.Empty;
 
-    /// <summary>Family name.</summary>
+    /// <summary>Family name. Encrypted at rest.</summary>
+    [EncryptedPersonalData]
     public string LastName { get; set; } = string.Empty;
 
     /// <summary>Optional avatar image URL.</summary>

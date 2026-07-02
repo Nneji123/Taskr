@@ -440,7 +440,7 @@ services.AddOptions<T>()
 ```env
 # .env.example
 ASPNETCORE_ENVIRONMENT=Production
-ASPNETCORE_URLS=http://+:8080
+ASPNETCORE_URLS=http://+:5001
 
 # Database
 POSTGRES_USER=taskr
@@ -490,9 +490,9 @@ WORKDIR /app
 RUN groupadd --gid 1000 app && useradd --uid 1000 --gid app --shell /bin/bash --create-home app
 COPY --from=build --chown=app:app /app .
 USER app
-EXPOSE 8080
+EXPOSE 5001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget -qO- http://localhost:8080/health || exit 1
+  CMD wget -qO- http://localhost:5001/health || exit 1
 ENTRYPOINT ["dotnet", "API.dll"]
 ```
 
@@ -500,7 +500,7 @@ ENTRYPOINT ["dotnet", "API.dll"]
 
 | Service | Image | Port | Purpose |
 |---|---|---|---|
-| `api` | built from `Dockerfile` | 8080 | The API |
+| `api` | built from `Dockerfile` | 5001 | The API |
 | `postgres` | `postgres:16-alpine` | 5432 | Primary DB |
 | `redis` | `redis:7-alpine` | (internal) | Cache |
 | `mailpit` | `axllent/mailpit:latest` | 8025 (UI), 1025 (SMTP, internal) | Dev email catcher |

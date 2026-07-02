@@ -29,12 +29,13 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     public void Configure(EntityTypeBuilder<User> builder)
     {
         BaseModelConfiguration.ApplyBase(builder);
-        builder.Property(x => x.Email).IsRequired().HasMaxLength(256);
-        builder.HasIndex(x => x.Email).IsUnique();
+        builder.Property(x => x.Email).IsRequired().HasMaxLength(600);
+        builder.Property(x => x.EmailHash).IsRequired().HasMaxLength(64);
+        builder.HasIndex(x => x.EmailHash).IsUnique();
         builder.Property(x => x.PasswordHash).IsRequired();
-        builder.Property(x => x.FirstName).IsRequired().HasMaxLength(100);
-        builder.Property(x => x.LastName).IsRequired().HasMaxLength(100);
-        builder.Property(x => x.PhoneNumber).HasMaxLength(50);
+        builder.Property(x => x.FirstName).IsRequired().HasMaxLength(500);
+        builder.Property(x => x.LastName).IsRequired().HasMaxLength(500);
+        builder.Property(x => x.PhoneNumber).HasMaxLength(500);
         builder.Property(x => x.AvatarUrl).HasMaxLength(2000);
     }
 }
@@ -70,7 +71,7 @@ public class TaskItemConfiguration : IEntityTypeConfiguration<TaskItem>
     {
         BaseModelConfiguration.ApplyBase(builder);
         builder.Property(x => x.Title).IsRequired().HasMaxLength(300);
-        builder.Property(x => x.Description).HasMaxLength(5000);
+        builder.Property(x => x.Description).HasMaxLength(5001);
         builder.Property(x => x.Attachments).HasColumnType("text[]");
         builder.HasIndex(x => x.ProjectId);
         builder.HasIndex(x => x.AssigneeId);

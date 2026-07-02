@@ -20,12 +20,12 @@ COPY --from=build --chown=app:app /app .
 
 USER app
 
-ENV ASPNETCORE_HTTP_PORTS=8080
+ENV ASPNETCORE_HTTP_PORTS=5001
 ENV DOTNET_EnableDiagnostics=0
 
-EXPOSE 8080
+EXPOSE 5001
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
+  CMD curl -f http://localhost:5001/health || exit 1
 
 ENTRYPOINT ["dotnet", "API.dll"]

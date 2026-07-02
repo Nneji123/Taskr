@@ -16,8 +16,8 @@ make up                # Start full stack (Postgres, Redis, Mailpit, API with ho
 make build             # dotnet build API/API.csproj -c Release
 make rebuild           # Force-rebuild API image
 make spec              # Save OpenAPI spec to ./swagger.json
-make docs              # Open http://localhost:8080/scalar/v1 (primary API docs)
-make swagger           # Open http://localhost:8080/swagger (fallback)
+make docs              # Open http://localhost:5001/scalar/v1 (primary API docs)
+make swagger           # Open http://localhost:5001/swagger (fallback)
 ```
 
 `make help` lists every target. The API auto-migrates the DB on startup.
@@ -57,7 +57,7 @@ make swagger           # Open http://localhost:8080/swagger (fallback)
 ## Testing / verification
 
 - There is currently **no test project**. Don't add one unless asked.
-- To verify a change, run `make build` and `make spec` to inspect the generated OpenAPI for any DTO/controller changes. Reload `http://localhost:8080/swagger` (hard refresh — the spec is now served with `Cache-Control: no-store`) to confirm summaries/descriptions render.
+- To verify a change, run `make build` and `make spec` to inspect the generated OpenAPI for any DTO/controller changes. Reload `http://localhost:5001/swagger` (hard refresh — the spec is now served with `Cache-Control: no-store`) to confirm summaries/descriptions render.
 
 ## Out-of-scope unless asked
 

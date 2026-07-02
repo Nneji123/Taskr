@@ -43,7 +43,7 @@ Set these under **Environment** in the Render dashboard:
 | Variable | Value |
 |---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
-| `ASPNETCORE_URLS` | `http://+:8080` |
+| `ASPNETCORE_URLS` | `http://+:5001` |
 | `JWT__SECRET` | Generate with: `openssl rand -base64 32` |
 | `JWT__ISSUER` | `taskr-api` |
 | `JWT__AUDIENCE` | `taskr-clients` |

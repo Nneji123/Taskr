@@ -30,12 +30,16 @@ public class AuthService(
 {
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest request, string ipAddress, CancellationToken ct)
     {
-        if (await db.Users.AnyAsync(u => u.Email == request.Email.ToLowerInvariant(), ct))
+        var normalizedEmail = request.Email.ToLowerInvariant().Trim();
+        var emailHash = EmailHashHelper.ComputeHash(normalizedEmail);
+
+        if (await db.Users.AnyAsync(u => u.EmailHash == emailHash, ct))
             throw new ConflictException("Email is already registered.");
 
         var user = new User
         {
-            Email = request.Email.ToLowerInvariant().Trim(),
+            Email = normalizedEmail,
+            EmailHash = emailHash,
             PasswordHash = passwordHasher.Hash(request.Password),
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
@@ -54,7 +58,9 @@ public class AuthService(
 
     public async Task<AuthTokensResponse> LoginAsync(LoginRequest request, string ipAddress, CancellationToken ct)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == request.Email.ToLowerInvariant().Trim(), ct)
+        var emailHash = EmailHashHelper.ComputeHash(request.Email.ToLowerInvariant().Trim());
+
+        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailHash == emailHash, ct)
             ?? throw new UnauthorizedException("Invalid email or password.");
 
         if (!passwordHasher.Verify(request.Password, user.PasswordHash))
@@ -136,12 +142,13 @@ public class AuthService(
 
     public async Task PasswordResetAsync(string email, CancellationToken ct)
     {
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant(), ct);
-        if (user is null) return; // Don't reveal whether the email exists
+        var emailHash = EmailHashHelper.ComputeHash(email.ToLowerInvariant().Trim());
+        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailHash == emailHash, ct);
+        if (user is null) return;
 
         var otp = string.Concat(Guid.NewGuid().ToString("N")[..6].Select(c => (char)('0' + (c % 10))));
         var hashedOtp = BCrypt.Net.BCrypt.HashPassword(otp);
-        await cache.SetAsync($"otp:password_reset:{email.ToLowerInvariant()}", hashedOtp, TimeSpan.FromMinutes(10), ct);
+        await cache.SetAsync($"otp:password_reset:{emailHash}", hashedOtp, TimeSpan.FromMinutes(10), ct);
 
         emailQueue.Enqueue(new EmailQueueEntry(user.Email, "Password Reset Request", FeatureEmailTemplates.Auth.PasswordReset,
             new() { ["Otp"] = otp }));
@@ -149,12 +156,13 @@ public class AuthService(
 
     public async Task PasswordResetConfirmAsync(string email, string otp, string newPassword, CancellationToken ct)
     {
-        var key = $"otp:password_reset:{email.ToLowerInvariant()}";
+        var emailHash = EmailHashHelper.ComputeHash(email.ToLowerInvariant().Trim());
+        var key = $"otp:password_reset:{emailHash}";
         var hashedOtp = await cache.GetAsync<string>(key, ct);
         if (hashedOtp is null || !BCrypt.Net.BCrypt.Verify(otp, hashedOtp))
             throw new UnauthorizedException("Invalid or expired OTP.");
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Email == email.ToLowerInvariant(), ct)
+        var user = await db.Users.FirstOrDefaultAsync(u => u.EmailHash == emailHash, ct)
             ?? throw new NotFoundException("User", email);
 
         user.PasswordHash = passwordHasher.Hash(newPassword);

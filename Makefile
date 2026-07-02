@@ -134,11 +134,11 @@ mailpit: ## Open Mailpit (email catcher) in the default browser
 
 .PHONY: scalar
 scalar: ## Open Scalar API Reference in the default browser
-	@open http://localhost:8080/scalar/v1 2>/dev/null || xdg-open http://localhost:8080/scalar/v1 2>/dev/null || echo "Scalar: http://localhost:8080/scalar/v1"
+	@open http://localhost:5001/scalar/v1 2>/dev/null || xdg-open http://localhost:5001/scalar/v1 2>/dev/null || echo "Scalar: http://localhost:5001/scalar/v1"
 
 .PHONY: swagger
 swagger: ## Open Swagger UI in the default browser
-	@open http://localhost:8080/swagger 2>/dev/null || xdg-open http://localhost:8080/swagger 2>/dev/null || echo "Swagger UI: http://localhost:8080/swagger"
+	@open http://localhost:5001/swagger 2>/dev/null || xdg-open http://localhost:5001/swagger 2>/dev/null || echo "Swagger UI: http://localhost:5001/swagger"
 
 .PHONY: docs
 docs: ## Open API docs (Scalar) in the default browser
@@ -146,11 +146,11 @@ docs: ## Open API docs (Scalar) in the default browser
 
 .PHONY: health
 health: ## Curl the health endpoint
-	@curl -s http://localhost:8080/health && echo
+	@curl -s http://localhost:5001/health && echo
 
 .PHONY: spec
 spec: ## Fetch the OpenAPI spec (pretty-printed) and save to ./swagger.json
-	@curl -s http://localhost:8080/swagger/v1/swagger.json | python3 -m json.tool > swagger.json
+	@curl -s http://localhost:5001/swagger/v1/swagger.json | python3 -m json.tool > swagger.json
 	@echo "Saved to swagger.json"
 
 # ── Production-like ───────────────────────────────────────────────────────────

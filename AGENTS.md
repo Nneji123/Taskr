@@ -68,7 +68,7 @@ After your change, before reporting done:
 ```bash
 make build                # must succeed
 make spec                 # dump swagger.json — sanity-check for missing fields, bad routes
-# (optional) curl -s http://localhost:8080/swagger/v1/swagger.json | python3 -m json.tool | head
+# (optional) curl -s http://localhost:5001/swagger/v1/swagger.json | python3 -m json.tool | head
 make health               # API still up
 ```
 
