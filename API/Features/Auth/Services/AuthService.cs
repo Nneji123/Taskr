@@ -3,6 +3,9 @@ using Microsoft.Extensions.Options;
 using API.Data;
 using API.Common;
 using API.Common.Email;
+using API.Common.Files;
+using API.Common.Files.Models;
+using API.Common.Storage;
 using API.Features.Auth.Models;
 using API.Features.Auth.DTOs;
 using API.Options;
@@ -26,8 +29,11 @@ public class AuthService(
     IJwtTokenService jwtTokenService,
     IEmailQueue emailQueue,
     ICacheService cache,
+    IStorageService storage,
     IOptions<JwtOptions> jwtOptions) : IAuthService
 {
+    private static readonly TimeSpan AvatarSignedUrlTtl = TimeSpan.FromMinutes(5);
+
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest request, string ipAddress, CancellationToken ct)
     {
         var normalizedEmail = request.Email.ToLowerInvariant().Trim();
@@ -43,7 +49,7 @@ public class AuthService(
             PasswordHash = passwordHasher.Hash(request.Password),
             FirstName = request.FirstName.Trim(),
             LastName = request.LastName.Trim(),
-            AvatarUrl = string.IsNullOrWhiteSpace(request.AvatarUrl) ? null : request.AvatarUrl.Trim(),
+            AvatarId = request.AvatarId,
             Metadata = request.Metadata ?? new Dictionary<string, object?>()
         };
 
@@ -53,7 +59,7 @@ public class AuthService(
         emailQueue.Enqueue(new EmailQueueEntry(user.Email, "Welcome to Taskr", FeatureEmailTemplates.Auth.Welcome,
             new() { ["FirstName"] = user.FirstName }));
 
-        return new RegisterResponse { User = MapUser(user) };
+        return new RegisterResponse { User = await MapUserAsync(user, ct) };
     }
 
     public async Task<AuthTokensResponse> LoginAsync(LoginRequest request, string ipAddress, CancellationToken ct)
@@ -107,7 +113,7 @@ public class AuthService(
     {
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new NotFoundException("User", userId);
-        return MapUser(user);
+        return await MapUserAsync(user, ct);
     }
 
     private async Task<AuthTokensResponse> IssueTokensAsync(User user, CancellationToken ct, string? replacedBy = null)
@@ -130,7 +136,7 @@ public class AuthService(
             RefreshToken = rawRefresh,
             AccessTokenExpiresAt = expiresAt,
             RefreshTokenExpiresAt = DateTime.UtcNow.AddDays(jwtOptions.Value.RefreshTokenLifetimeDays),
-            User = MapUser(user)
+            User = await MapUserAsync(user, ct)
         };
     }
 
@@ -182,11 +188,33 @@ public class AuthService(
         await db.SaveChangesAsync(ct);
     }
 
-    private static UserResponse MapUser(User user) => new()
+    private async Task<UserResponse> MapUserAsync(User user, CancellationToken ct)
     {
-        Id = user.Id, Email = user.Email, FirstName = user.FirstName,
-        LastName = user.LastName, AvatarUrl = user.AvatarUrl,
-        CreatedAt = user.CreatedAt, UpdatedAt = user.UpdatedAt,
-        LastLoginAt = user.LastLoginAt, Metadata = user.Metadata
+        FileResponse? avatar = null;
+        if (user.AvatarId.HasValue)
+        {
+            var record = await db.FileRecords.FirstOrDefaultAsync(f => f.Id == user.AvatarId.Value, ct);
+            if (record is not null)
+                avatar = MapFile(record);
+        }
+
+        return new UserResponse
+        {
+            Id = user.Id, Email = user.Email, FirstName = user.FirstName,
+            LastName = user.LastName, Avatar = avatar,
+            CreatedAt = user.CreatedAt, UpdatedAt = user.UpdatedAt,
+            LastLoginAt = user.LastLoginAt, Metadata = user.Metadata
+        };
+    }
+
+    private FileResponse MapFile(FileRecord record) => new()
+    {
+        Id = record.Id,
+        Key = record.Key,
+        Url = storage.GetSignedUrl(record.Key, AvatarSignedUrlTtl),
+        OriginalFilename = record.OriginalFilename,
+        FileSize = record.FileSize,
+        ContentType = record.ContentType,
+        CreatedAt = record.CreatedAt
     };
 }

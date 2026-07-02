@@ -1,3 +1,5 @@
+using API.Common.Files;
+
 namespace API.Features.Projects.DTOs;
 
 /// <summary>Project resource returned by project endpoints.</summary>
@@ -12,8 +14,8 @@ public class ProjectResponse
     /// <summary>Longer description of the project, if any.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Optional cover image URL.</summary>
-    public string? CoverImageUrl { get; set; }
+    /// <summary>Optional cover image, resolved with a fresh signed URL.</summary>
+    public FileResponse? CoverImage { get; set; }
 
     /// <summary>Identifier of the user who owns the project.</summary>
     public Guid OwnerId { get; set; }

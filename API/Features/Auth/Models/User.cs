@@ -1,4 +1,5 @@
 using API.Common;
+using API.Common.Files.Models;
 using API.Features.Projects.Models;
 using API.Features.Tasks.Models;
 
@@ -28,8 +29,11 @@ public class User : BaseModel
     [EncryptedPersonalData]
     public string LastName { get; set; } = string.Empty;
 
-    /// <summary>Optional avatar image URL.</summary>
-    public string? AvatarUrl { get; set; }
+    /// <summary>Optional avatar file record. Set via <c>POST /v1/files</c>, then pass the returned <c>id</c> on registration or profile update.</summary>
+    public Guid? AvatarId { get; set; }
+
+    /// <summary>Navigation property for the avatar file, if any.</summary>
+    public FileRecord? Avatar { get; set; }
 
     /// <summary>Phone number, stored encrypted at rest.</summary>
     [EncryptedPersonalData]

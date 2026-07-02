@@ -1,3 +1,5 @@
+using API.Common.Files;
+
 namespace API.Features.Auth.DTOs;
 
 /// <summary>Public-facing user profile returned by auth and user endpoints.</summary>
@@ -15,8 +17,8 @@ public class UserResponse
     /// <summary>Family name.</summary>
     public string LastName { get; set; } = string.Empty;
 
-    /// <summary>Optional avatar image URL.</summary>
-    public string? AvatarUrl { get; set; }
+    /// <summary>Optional avatar file, resolved with a fresh signed URL.</summary>
+    public FileResponse? Avatar { get; set; }
 
     /// <summary>Timestamp (UTC) the user record was created.</summary>
     public DateTime CreatedAt { get; set; }

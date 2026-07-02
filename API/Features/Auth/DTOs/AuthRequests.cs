@@ -15,8 +15,8 @@ public class RegisterRequest
     /// <summary>Family name shown in the UI.</summary>
     public string LastName { get; set; } = string.Empty;
 
-    /// <summary>Optional avatar image URL. Must be uploaded via <c>POST /v1/files</c>.</summary>
-    public string? AvatarUrl { get; set; }
+    /// <summary>Optional avatar file id. Upload via <c>POST /v1/files</c> first, then pass the returned <c>id</c>.</summary>
+    public Guid? AvatarId { get; set; }
 
     /// <summary>Optional free-form key/value metadata stored on the user record.</summary>
     public Dictionary<string, object?>? Metadata { get; set; }

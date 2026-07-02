@@ -1,21 +1,25 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using API.Common;
 using API.Common.Files;
+using API.Common.Files.Models;
 using API.Common.Storage;
+using API.Data;
 
 namespace API.Common.Files.Controllers;
 
 /// <summary>
 /// File upload and deletion endpoints. Uploaded files are stored on the
-/// configured storage provider (S3, Cloudinary, or local) and the resulting
-/// URL is the only value clients should store on resources.
+/// configured storage provider (S3, Cloudinary, or local). Every upload
+/// creates a <see cref="FileRecord"/> in the database so that other resources
+/// can reference files by their database ID.
 /// </summary>
 [Authorize]
 [Route("v1/files")]
 [EnableRateLimiting("write-strict")]
-public class FilesController(IStorageService storage, ICurrentUser currentUser, ILogger<FilesController> logger) : BaseController(currentUser)
+public class FilesController(IStorageService storage, AppDbContext db, ICurrentUser currentUser, ILogger<FilesController> logger) : BaseController(currentUser)
 {
     private static readonly string[] AllowedContentTypes =
     [
@@ -28,8 +32,9 @@ public class FilesController(IStorageService storage, ICurrentUser currentUser, 
     /// <remarks>
     /// Accepts a <c>multipart/form-data</c> body with one or more files in the
     /// <c>files</c> field. Each file must be one of the allowed content types
-    /// and no larger than 10 MB. The returned URL is what should be stored on
-    /// resources (avatar, cover image, task attachments, etc.).
+    /// and no larger than 10 MB. The returned <c>id</c> is the database
+    /// identifier that should be stored on resources (avatar, cover image,
+    /// task attachments, etc.).
     /// </remarks>
     [HttpPost]
     [Consumes("multipart/form-data")]
@@ -61,41 +66,58 @@ public class FilesController(IStorageService storage, ICurrentUser currentUser, 
             var url = await storage.UploadAsync(stream, file.FileName, file.ContentType, ct);
             var key = ExtractKeyFromUrl(url);
 
+            var record = new FileRecord
+            {
+                Key = key,
+                OriginalFilename = file.FileName,
+                ContentType = file.ContentType,
+                FileSize = file.Length,
+                UploadedByUserId = CurrentUser.Id
+            };
+            db.FileRecords.Add(record);
+            await db.SaveChangesAsync(ct);
+
             results.Add(new FileResponse
             {
-                Id = Guid.NewGuid().ToString("N"),
+                Id = record.Id,
                 Key = key,
                 Url = url,
                 OriginalFilename = file.FileName,
                 FileSize = file.Length,
-                ContentType = file.ContentType
+                ContentType = file.ContentType,
+                CreatedAt = record.CreatedAt
             });
 
-            logger.LogInformation("Uploaded {Filename} ({Size} bytes) to {Url}", file.FileName, file.Length, url);
+            logger.LogInformation("Uploaded {Filename} ({Size} bytes) — FileRecord {Id}", file.FileName, file.Length, record.Id);
         }
 
         var data = results.Count == 1 ? (object)results[0] : results;
         return StatusCode(201, ApiResponse<object>.Ok(data, $"Successfully uploaded {results.Count} file(s)."));
     }
 
-    /// <summary>Delete a previously uploaded file by URL.</summary>
+    /// <summary>Delete a previously uploaded file by its database ID.</summary>
     /// <remarks>
-    /// Removes the underlying object from the configured storage provider.
-    /// The URL must be one previously returned by the upload endpoint and
-    /// owned by the calling user.
+    /// Removes the underlying object from the configured storage provider and
+    /// deletes the <see cref="FileRecord"/> from the database. Only the
+    /// uploading user may delete their own files.
     /// </remarks>
-    [HttpDelete]
+    [HttpDelete("{id:guid}")]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
-    public async Task<IActionResult> Delete([FromQuery] string url, CancellationToken ct)
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(url))
-            return Ok(ApiResponse.Fail("Query parameter 'url' is required."));
+        var record = await db.FileRecords.FirstOrDefaultAsync(f => f.Id == id, ct)
+            ?? throw new NotFoundException("File", id);
 
-        await storage.DeleteAsync(url, ct);
+        if (record.UploadedByUserId != CurrentUser.Id)
+            throw new ForbiddenException();
+
+        await storage.DeleteAsync(record.Key, ct);
+        db.FileRecords.Remove(record);
+        await db.SaveChangesAsync(ct);
+
         return OkResult<object?>(null, "File deleted successfully.");
     }
 

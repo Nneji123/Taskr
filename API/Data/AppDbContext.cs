@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using API.Common;
+using API.Common.Files.Models;
 using API.Features.Auth.Models;
 using API.Features.Projects.Models;
 using API.Features.Tasks.Models;
@@ -13,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IDataEncryptor
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<TaskItem> Tasks => Set<TaskItem>();
+    public DbSet<FileRecord> FileRecords => Set<FileRecord>();
+    public DbSet<TaskAttachment> TaskAttachments => Set<TaskAttachment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

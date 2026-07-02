@@ -1,3 +1,4 @@
+using API.Common.Files;
 using API.Features.Tasks.Models;
 
 namespace API.Features.Tasks.DTOs;
@@ -14,8 +15,8 @@ public class TaskResponse
     /// <summary>Optional longer description or notes.</summary>
     public string? Description { get; set; }
 
-    /// <summary>List of attachment URLs.</summary>
-    public List<string> Attachments { get; set; } = [];
+    /// <summary>Attachment files, each resolved with a fresh signed URL.</summary>
+    public List<FileResponse> Attachments { get; set; } = [];
 
     /// <summary>Identifier of the project the task belongs to.</summary>
     public Guid ProjectId { get; set; }

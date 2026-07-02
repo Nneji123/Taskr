@@ -1,4 +1,5 @@
 using API.Common;
+using API.Common.Files.Models;
 using API.Features.Auth.Models;
 using API.Features.Tasks.Models;
 
@@ -16,8 +17,11 @@ public class Project : BaseModel
     /// <summary>Optional longer description.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Optional cover image URL.</summary>
-    public string? CoverImageUrl { get; set; }
+    /// <summary>Optional cover image file record. Set via <c>POST /v1/files</c>, then pass the returned <c>id</c> on creation or update.</summary>
+    public Guid? CoverImageId { get; set; }
+
+    /// <summary>Navigation property for the cover image, if any.</summary>
+    public FileRecord? CoverImage { get; set; }
 
     /// <summary>Identifier of the owning user.</summary>
     public Guid OwnerId { get; set; }

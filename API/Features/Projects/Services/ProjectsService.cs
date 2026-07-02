@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using API.Data;
 using API.Common;
+using API.Common.Files;
+using API.Common.Files.Models;
+using API.Common.Storage;
 using API.Features.Projects.Models;
 using API.Features.Projects.DTOs;
 
@@ -15,8 +18,10 @@ public interface IProjectsService
     Task DeleteAsync(Guid userId, Guid projectId, CancellationToken ct);
 }
 
-public class ProjectsService(AppDbContext db) : IProjectsService
+public class ProjectsService(AppDbContext db, IStorageService storage) : IProjectsService
 {
+    private static readonly TimeSpan CoverImageSignedUrlTtl = TimeSpan.FromMinutes(5);
+
     public async Task<PagedResult<ProjectResponse>> ListAsync(Guid userId, ProjectListQuery query, CancellationToken ct)
     {
         var q = db.Projects.Where(p => p.OwnerId == userId);
@@ -38,11 +43,18 @@ public class ProjectsService(AppDbContext db) : IProjectsService
             .Select(p => new ProjectResponse
             {
                 Id = p.Id, Name = p.Name, Description = p.Description,
-                CoverImageUrl = p.CoverImageUrl,
+                CoverImage = null,
                 OwnerId = p.OwnerId, CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt,
                 Metadata = p.Metadata
             })
             .ToListAsync(ct);
+
+        foreach (var item in items)
+        {
+            var project = await db.Projects.Include(p => p.CoverImage).FirstOrDefaultAsync(p => p.Id == item.Id, ct);
+            if (project?.CoverImage is not null)
+                item.CoverImage = MapFile(project.CoverImage);
+        }
 
         return new PagedResult<ProjectResponse> { Items = items, Page = query.Page, PageSize = query.PageSize, TotalCount = total };
     }
@@ -53,33 +65,36 @@ public class ProjectsService(AppDbContext db) : IProjectsService
         {
             Name = request.Name.Trim(),
             Description = request.Description?.Trim(),
-            CoverImageUrl = string.IsNullOrWhiteSpace(request.CoverImageUrl) ? null : request.CoverImageUrl.Trim(),
+            CoverImageId = request.CoverImageId,
             OwnerId = userId,
             Metadata = request.Metadata ?? new Dictionary<string, object?>()
         };
         db.Projects.Add(project);
         await db.SaveChangesAsync(ct);
-        return MapProject(project);
+        return await MapProjectAsync(project, ct);
     }
 
     public async Task<ProjectResponse> GetByIdAsync(Guid userId, Guid projectId, CancellationToken ct)
     {
-        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
+        var project = await db.Projects.Include(p => p.CoverImage)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
             ?? throw new NotFoundException("Project", projectId);
-        return MapProject(project);
+        return await MapProjectAsync(project, ct);
     }
 
     public async Task<ProjectResponse> UpdateAsync(Guid userId, Guid projectId, UpdateProjectRequest request, CancellationToken ct)
     {
-        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
+        var project = await db.Projects.Include(p => p.CoverImage)
+            .FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
             ?? throw new NotFoundException("Project", projectId);
         if (request.Name is not null) project.Name = request.Name.Trim();
         if (request.Description is not null) project.Description = request.Description.Trim();
-        if (request.CoverImageUrl is not null) project.CoverImageUrl = request.CoverImageUrl.Trim();
+        if (request.CoverImageId.HasValue) project.CoverImageId = request.CoverImageId;
+        else if (request.CoverImageId == null && request.Metadata != null) project.CoverImageId = null;
         if (request.Metadata is not null) project.Metadata = request.Metadata;
         project.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
-        return MapProject(project);
+        return await MapProjectAsync(project, ct);
     }
 
     public async Task DeleteAsync(Guid userId, Guid projectId, CancellationToken ct)
@@ -90,11 +105,33 @@ public class ProjectsService(AppDbContext db) : IProjectsService
         await db.SaveChangesAsync(ct);
     }
 
-    private static ProjectResponse MapProject(Project p) => new()
+    private async Task<ProjectResponse> MapProjectAsync(Project p, CancellationToken ct)
     {
-        Id = p.Id, Name = p.Name, Description = p.Description,
-        CoverImageUrl = p.CoverImageUrl,
-        OwnerId = p.OwnerId, CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt,
-        Metadata = p.Metadata
+        FileResponse? coverImage = null;
+        if (p.CoverImageId.HasValue)
+        {
+            var record = p.CoverImage ?? await db.FileRecords.FirstOrDefaultAsync(f => f.Id == p.CoverImageId.Value, ct);
+            if (record is not null)
+                coverImage = MapFile(record);
+        }
+
+        return new ProjectResponse
+        {
+            Id = p.Id, Name = p.Name, Description = p.Description,
+            CoverImage = coverImage,
+            OwnerId = p.OwnerId, CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt,
+            Metadata = p.Metadata
+        };
+    }
+
+    private FileResponse MapFile(FileRecord record) => new()
+    {
+        Id = record.Id,
+        Key = record.Key,
+        Url = storage.GetSignedUrl(record.Key, CoverImageSignedUrlTtl),
+        OriginalFilename = record.OriginalFilename,
+        FileSize = record.FileSize,
+        ContentType = record.ContentType,
+        CreatedAt = record.CreatedAt
     };
 }

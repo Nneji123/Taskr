@@ -94,4 +94,37 @@ public class TasksController(ITasksService tasksService, ICurrentUser currentUse
         await tasksService.DeleteAsync(CurrentUser.Id, id, ct);
         return DeletedResult("Task deleted");
     }
+
+    /// <summary>Add an attachment to a task.</summary>
+    /// <remarks>
+    /// Links an uploaded file (by its database <c>fileRecordId</c>) to the task.
+    /// The file must have been uploaded by the calling user via <c>POST /v1/files</c>.
+    /// </remarks>
+    [HttpPost("v1/tasks/{id:guid}/attachments")]
+    [EnableRateLimiting("write-strict")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> AddAttachment(Guid id, [FromBody] AddTaskAttachmentRequest request, CancellationToken ct)
+    {
+        await tasksService.AddAttachmentAsync(CurrentUser.Id, id, request.FileRecordId, ct);
+        return OkResult<object?>(null, "Attachment added.");
+    }
+
+    /// <summary>Remove an attachment from a task by its file record id.</summary>
+    /// <remarks>Permanently removes the attachment link. Does not delete the underlying file.</remarks>
+    [HttpDelete("v1/tasks/{taskId:guid}/attachments/{fileRecordId:guid}")]
+    [EnableRateLimiting("write-strict")]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> RemoveAttachment(Guid taskId, Guid fileRecordId, CancellationToken ct)
+    {
+        await tasksService.RemoveAttachmentAsync(CurrentUser.Id, taskId, fileRecordId, ct);
+        return OkResult<object?>(null, "Attachment removed.");
+    }
 }

@@ -13,9 +13,6 @@ public class CreateTaskRequest
     /// <summary>Optional longer description or notes for the task.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Optional list of attachment URLs uploaded via <c>POST /v1/files</c>.</summary>
-    public List<string>? Attachments { get; set; }
-
     /// <summary>Optional priority. Defaults to <c>Medium</c> on the server.</summary>
     public TaskPriority? Priority { get; set; }
 
@@ -38,9 +35,6 @@ public class UpdateTaskRequest
     /// <summary>New description. Pass an empty string to clear.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Replacement attachment URL list. Pass an empty list to clear.</summary>
-    public List<string>? Attachments { get; set; }
-
     /// <summary>New status. Setting to <c>Done</c> records <c>completedAt</c>.</summary>
     public TaskItemStatus? Status { get; set; }
 
@@ -55,6 +49,13 @@ public class UpdateTaskRequest
 
     /// <summary>Replacement metadata. Pass an empty object to clear.</summary>
     public Dictionary<string, object?>? Metadata { get; set; }
+}
+
+/// <summary>Payload for <c>POST /v1/tasks/{id}/attachments</c>.</summary>
+public class AddTaskAttachmentRequest
+{
+    /// <summary>Database file id returned by <c>POST /v1/files</c>.</summary>
+    public Guid FileRecordId { get; set; }
 }
 
 /// <summary>Query string for <c>GET /v1/projects/{projectId}/tasks</c>.</summary>

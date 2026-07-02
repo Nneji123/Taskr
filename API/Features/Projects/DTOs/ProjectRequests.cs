@@ -11,8 +11,8 @@ public class CreateProjectRequest
     /// <summary>Optional longer description shown on the project page.</summary>
     public string? Description { get; set; }
 
-    /// <summary>Optional cover image URL. Must be uploaded via <c>POST /v1/files</c>.</summary>
-    public string? CoverImageUrl { get; set; }
+    /// <summary>Optional cover image file id. Upload via <c>POST /v1/files</c> first, then pass the returned <c>id</c>.</summary>
+    public Guid? CoverImageId { get; set; }
 
     /// <summary>Optional free-form key/value metadata stored on the project.</summary>
     public Dictionary<string, object?>? Metadata { get; set; }
@@ -27,8 +27,8 @@ public class UpdateProjectRequest
     /// <summary>New description. Pass an empty string to clear.</summary>
     public string? Description { get; set; }
 
-    /// <summary>New cover image URL. Pass an empty string to clear.</summary>
-    public string? CoverImageUrl { get; set; }
+    /// <summary>New cover image file id. Pass <c>null</c> to clear.</summary>
+    public Guid? CoverImageId { get; set; }
 
     /// <summary>Replacement metadata. Pass an empty object to clear.</summary>
     public Dictionary<string, object?>? Metadata { get; set; }

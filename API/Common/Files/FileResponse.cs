@@ -6,9 +6,9 @@ namespace API.Common.Files;
 /// <summary>Response for a single uploaded file.</summary>
 public class FileResponse
 {
-    /// <summary>Server-generated identifier for the file record.</summary>
+    /// <summary>Database identifier for the file record.</summary>
     [JsonPropertyName("id")]
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
 
     /// <summary>Storage key (S3 object key). Use this to request new signed URLs via <c>GET /v1/files/signed-url</c>.</summary>
     [JsonPropertyName("key")]

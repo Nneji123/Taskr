@@ -4,17 +4,20 @@ using System.Collections.Generic;
 using API.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace API.Migrations
+namespace API.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260702083313_RefactorFileArchitecture")]
+    partial class RefactorFileArchitecture
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,8 +80,7 @@ namespace API.Migrations
 
                     b.HasIndex("Key");
 
-                    b.HasIndex("UploadedByUserId")
-                        .IsUnique();
+                    b.HasIndex("UploadedByUserId");
 
                     b.ToTable("FileRecords");
                 });

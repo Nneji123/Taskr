@@ -16,8 +16,8 @@ public class TaskItem : BaseModel
     /// <summary>Optional longer description or notes.</summary>
     public string? Description { get; set; }
 
-    /// <summary>List of attachment URLs.</summary>
-    public List<string> Attachments { get; set; } = [];
+    /// <summary>Attachments linked to this task via <see cref="TaskAttachment"/> join records.</summary>
+    public ICollection<TaskAttachment> Attachments { get; set; } = [];
 
     /// <summary>Identifier of the project the task belongs to.</summary>
     public Guid ProjectId { get; set; }

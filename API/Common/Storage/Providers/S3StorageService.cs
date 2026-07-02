@@ -48,9 +48,9 @@ public class S3StorageService : IStorageService
         return GetSignedUrl(key, DefaultUploadSignedUrlTtl);
     }
 
-    public async Task DeleteAsync(string url, CancellationToken ct = default)
+    public async Task DeleteAsync(string urlOrKey, CancellationToken ct = default)
     {
-        var key = ExtractKey(url);
+        var key = ExtractKey(urlOrKey);
         if (string.IsNullOrEmpty(key)) return;
 
         await _client.DeleteObjectAsync(new DeleteObjectRequest
@@ -101,10 +101,13 @@ public class S3StorageService : IStorageService
         return url;
     }
 
-    private static string? ExtractKey(string url)
+    private static string? ExtractKey(string urlOrKey)
     {
-        var uri = new Uri(url);
-        var segments = uri.AbsolutePath.TrimStart('/').Split('/');
-        return segments.Length > 0 ? segments[^1] : null;
+        if (Uri.TryCreate(urlOrKey, UriKind.Absolute, out var uri))
+        {
+            var segments = uri.AbsolutePath.TrimStart('/').Split('/');
+            return segments.Length > 0 ? segments[^1] : null;
+        }
+        return urlOrKey;
     }
 }
