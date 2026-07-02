@@ -50,7 +50,7 @@ public class AuthService(
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
 
-        emailQueue.Enqueue(new EmailQueueEntry(user.Email, "Welcome to API", FeatureEmailTemplates.Auth.Welcome,
+        emailQueue.Enqueue(new EmailQueueEntry(user.Email, "Welcome to Taskr", FeatureEmailTemplates.Auth.Welcome,
             new() { ["FirstName"] = user.FirstName }));
 
         return new RegisterResponse { User = MapUser(user) };

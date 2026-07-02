@@ -1,32 +1,67 @@
 <mjml>
   <mj-head>
-    <mj-title>Welcome to Mercadotnet</mj-title>
+    <mj-title>Welcome to Taskr</mj-title>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
     <mj-attributes>
-      <mj-all font-family="Arial, sans-serif" />
+      <mj-all font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" />
     </mj-attributes>
+    <mj-style>
+      .card-shadow {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      }
+    </mj-style>
   </mj-head>
-  <mj-body background-color="#f4f4f4">
-    <mj-section>
-      <mj-column width="600px" background-color="#ffffff" padding="24px">
-        <mj-text font-size="28px" color="#1a1a1a" font-weight="bold" padding-bottom="16px">
-          Welcome, {{FirstName}}!
+  <mj-body background-color="#f8fafc">
+    <!-- Spacer -->
+    <mj-section padding="24px 0 0 0"></mj-section>
+    
+    <!-- Logo / Brand Header -->
+    <mj-section padding-bottom="16px">
+      <mj-column>
+        <mj-text align="center" font-size="24px" font-weight="800" color="#4f46e5" letter-spacing="-0.5px">
+          Taskr
         </mj-text>
-        <mj-divider border-color="#e0e0e0" />
-        <mj-text font-size="16px" color="#555555" line-height="1.6">
-          Your account on <strong>Mercadotnet</strong> has been created successfully.
+      </mj-column>
+    </mj-section>
+
+    <!-- Main Content Card -->
+    <mj-section padding="0 16px">
+      <mj-column background-color="#ffffff" border-radius="16px" border="1px solid #e2e8f0" padding="32px" css-class="card-shadow">
+        <mj-text font-size="24px" color="#0f172a" font-weight="700" padding-bottom="12px" align="center">
+          Welcome, {{FirstName}}! 👋
         </mj-text>
-        <mj-text font-size="16px" color="#555555" line-height="1.6">
-          You can now log in and start managing your projects and tasks.
+        <mj-text font-size="15px" color="#475569" line-height="1.6" align="center" padding-bottom="24px">
+          Your account on <strong>Taskr</strong> has been created successfully. We're excited to help you streamline your productivity.
         </mj-text>
-        <mj-button background-color="#4f46e5" color="#ffffff" href="https://mercadotnet.app/login">
+        
+        <mj-divider border-width="1px" border-color="#f1f5f9" padding-bottom="24px" />
+
+        <!-- Feature List -->
+        <mj-text font-size="16px" font-weight="600" color="#1e293b" padding-bottom="12px">
+          What can you do with Taskr?
+        </mj-text>
+        
+        <mj-text font-size="14px" color="#475569" line-height="1.8" padding-bottom="24px">
+          📁 <strong>Create Projects</strong> — Organize tasks into focused workspaces.<br />
+          📝 <strong>Track Tasks</strong> — Add descriptions, assignees, and set priorities.<br />
+          🚀 <strong>Stay Productive</strong> — Keep your workflow clean, organized, and on-time.
+        </mj-text>
+
+        <!-- CTA Button -->
+        <mj-button background-color="#4f46e5" color="#ffffff" font-size="15px" font-weight="600" border-radius="8px" padding="16px 24px" href="https://taskr.app/login" align="center" width="100%">
           Get Started
         </mj-button>
       </mj-column>
     </mj-section>
-    <mj-section>
+
+    <!-- Footer -->
+    <mj-section padding-top="24px" padding-bottom="24px">
       <mj-column>
-        <mj-text font-size="12px" color="#999999" align="center">
-          If you did not create this account, please ignore this email.
+        <mj-text font-size="12px" color="#94a3b8" align="center" line-height="1.5">
+          If you did not sign up for this account, please ignore this email.
+        </mj-text>
+        <mj-text font-size="12px" color="#64748b" align="center" font-weight="600" padding-top="8px">
+          Taskr &middot; Task Management
         </mj-text>
       </mj-column>
     </mj-section>
