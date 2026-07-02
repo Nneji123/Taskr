@@ -4,20 +4,23 @@ namespace API.Common;
 
 public class PaginationMeta
 {
-    [JsonPropertyName("count")]
-    public int Count { get; set; }
+    [JsonPropertyName("page")]
+    public int Page { get; set; }
 
-    [JsonPropertyName("total_items_count")]
-    public int TotalItemsCount { get; set; }
-
-    [JsonPropertyName("next")]
-    public int? Next { get; set; }
-
-    [JsonPropertyName("previous")]
-    public int? Previous { get; set; }
-
-    [JsonPropertyName("page_size")]
+    [JsonPropertyName("pageSize")]
     public int PageSize { get; set; }
+
+    [JsonPropertyName("totalCount")]
+    public int TotalCount { get; set; }
+
+    [JsonPropertyName("totalPages")]
+    public int TotalPages { get; set; }
+
+    [JsonPropertyName("hasNext")]
+    public bool HasNext { get; set; }
+
+    [JsonPropertyName("hasPrevious")]
+    public bool HasPrevious { get; set; }
 }
 
 /// <summary>

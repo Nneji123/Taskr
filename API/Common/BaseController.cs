@@ -21,11 +21,12 @@ public abstract class BaseController(ICurrentUser currentUser) : ControllerBase
     {
         var meta = new PaginationMeta
         {
-            Count = result.Items.Count,
-            TotalItemsCount = result.TotalCount,
-            Next = result.HasNext ? result.Page + 1 : null,
-            Previous = result.HasPrevious ? result.Page - 1 : null,
-            PageSize = result.PageSize
+            Page = result.Page,
+            PageSize = result.PageSize,
+            TotalCount = result.TotalCount,
+            TotalPages = result.TotalPages,
+            HasNext = result.HasNext,
+            HasPrevious = result.HasPrevious
         };
         return Ok(new ApiResponse<IReadOnlyList<T>>
         {

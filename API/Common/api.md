@@ -101,23 +101,25 @@ List endpoints support pagination via query parameters:
   "message": "Operation successful",
   "data": [ ... ],
   "meta": {
-    "count": 20,
-    "total_items_count": 42,
-    "next": 2,
-    "previous": null,
-    "page_size": 20
+    "page": 1,
+    "pageSize": 20,
+    "totalCount": 42,
+    "totalPages": 3,
+    "hasNext": true,
+    "hasPrevious": false
   },
   "errors": null
 }
 ```
 
 | meta field | Description |
-|---|---|
-| `count` | Number of items on the current page |
-| `total_items_count` | Total number of items matching the query |
-| `next` | Next page number, or `null` if on the last page |
-| `previous` | Previous page number, or `null` if on the first page |
-| `page_size` | Items per page (matches the `pageSize` query param) |
+|---|---|---|
+| `page` | Current page number (1-indexed) |
+| `pageSize` | Items per page |
+| `totalCount` | Total number of items matching the query |
+| `totalPages` | Total number of pages |
+| `hasNext` | Whether there is a next page |
+| `hasPrevious` | Whether there is a previous page |
 
 ## Response Format
 
