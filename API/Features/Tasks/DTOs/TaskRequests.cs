@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using API.Common;
 using API.Features.Tasks.Models;
@@ -8,21 +9,30 @@ namespace API.Features.Tasks.DTOs;
 public class CreateTaskRequest
 {
     /// <summary>Short title describing the task. Required.</summary>
+    [Required]
+    [StringLength(300, MinimumLength = 1)]
+    [JsonPropertyName("title")]
     public string Title { get; set; } = string.Empty;
 
     /// <summary>Optional longer description or notes for the task.</summary>
+    [StringLength(5001)]
+    [JsonPropertyName("description")]
     public string? Description { get; set; }
 
     /// <summary>Optional priority. Defaults to <c>Medium</c> on the server.</summary>
+    [JsonPropertyName("priority")]
     public TaskPriority? Priority { get; set; }
 
     /// <summary>Optional due date (ISO 8601, UTC).</summary>
+    [JsonPropertyName("dueDate")]
     public DateTime? DueDate { get; set; }
 
     /// <summary>Optional user id to assign the task to. Must be a known user.</summary>
+    [JsonPropertyName("assigneeId")]
     public Guid? AssigneeId { get; set; }
 
     /// <summary>Optional free-form key/value metadata stored on the task.</summary>
+    [JsonPropertyName("metadata")]
     public Dictionary<string, object?>? Metadata { get; set; }
 }
 
@@ -30,24 +40,33 @@ public class CreateTaskRequest
 public class UpdateTaskRequest
 {
     /// <summary>New title.</summary>
+    [StringLength(300, MinimumLength = 1)]
+    [JsonPropertyName("title")]
     public string? Title { get; set; }
 
     /// <summary>New description. Pass an empty string to clear.</summary>
+    [StringLength(5001)]
+    [JsonPropertyName("description")]
     public string? Description { get; set; }
 
     /// <summary>New status. Setting to <c>Done</c> records <c>completedAt</c>.</summary>
+    [JsonPropertyName("status")]
     public TaskItemStatus? Status { get; set; }
 
     /// <summary>New priority.</summary>
+    [JsonPropertyName("priority")]
     public TaskPriority? Priority { get; set; }
 
     /// <summary>New due date. Pass null to clear.</summary>
+    [JsonPropertyName("dueDate")]
     public DateTime? DueDate { get; set; }
 
     /// <summary>New assignee. Pass null to unassign.</summary>
+    [JsonPropertyName("assigneeId")]
     public Guid? AssigneeId { get; set; }
 
     /// <summary>Replacement metadata. Pass an empty object to clear.</summary>
+    [JsonPropertyName("metadata")]
     public Dictionary<string, object?>? Metadata { get; set; }
 }
 
@@ -55,6 +74,8 @@ public class UpdateTaskRequest
 public class AddTaskAttachmentRequest
 {
     /// <summary>Database file id returned by <c>POST /v1/files</c>.</summary>
+    [Required]
+    [JsonPropertyName("fileRecordId")]
     public Guid FileRecordId { get; set; }
 }
 

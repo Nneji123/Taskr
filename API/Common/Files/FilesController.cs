@@ -141,13 +141,13 @@ public class FilesController(IStorageService storage, AppDbContext db, ICurrentU
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status429TooManyRequests)]
-    public IActionResult GetSignedUrl([FromQuery] string key, [FromQuery] int? ttlSeconds)
+    public IActionResult GetSignedUrl([FromQuery] string? key, [FromQuery] int? ttlSeconds)
     {
         if (string.IsNullOrWhiteSpace(key))
-            return Ok(ApiResponse.Fail("Query parameter 'key' is required."));
+            return BadRequestResult("Query parameter 'key' is required.");
 
         if (key.Contains("..", StringComparison.Ordinal) || key.StartsWith('/'))
-            return Ok(ApiResponse.Fail("Query parameter 'key' is invalid."));
+            return BadRequestResult("Query parameter 'key' is invalid.");
 
         var requested = ttlSeconds ?? DefaultSignedUrlTtlSeconds;
         var clamped = Math.Clamp(requested, MinSignedUrlTtlSeconds, MaxSignedUrlTtlSeconds);

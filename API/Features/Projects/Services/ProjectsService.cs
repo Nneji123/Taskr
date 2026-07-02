@@ -77,20 +77,22 @@ public class ProjectsService(AppDbContext db, IStorageService storage) : IProjec
     public async Task<ProjectResponse> GetByIdAsync(Guid userId, Guid projectId, CancellationToken ct)
     {
         var project = await db.Projects.Include(p => p.CoverImage)
-            .FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
+            .FirstOrDefaultAsync(p => p.Id == projectId, ct)
             ?? throw new NotFoundException("Project", projectId);
+        if (project.OwnerId != userId) throw new ForbiddenException();
         return await MapProjectAsync(project, ct);
     }
 
     public async Task<ProjectResponse> UpdateAsync(Guid userId, Guid projectId, UpdateProjectRequest request, CancellationToken ct)
     {
         var project = await db.Projects.Include(p => p.CoverImage)
-            .FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
+            .FirstOrDefaultAsync(p => p.Id == projectId, ct)
             ?? throw new NotFoundException("Project", projectId);
+        if (project.OwnerId != userId) throw new ForbiddenException();
+
         if (request.Name is not null) project.Name = request.Name.Trim();
         if (request.Description is not null) project.Description = request.Description.Trim();
-        if (request.CoverImageId.HasValue) project.CoverImageId = request.CoverImageId;
-        else if (request.CoverImageId == null && request.Metadata != null) project.CoverImageId = null;
+        if (request.CoverImageIdPresent) project.CoverImageId = request.CoverImageId;
         if (request.Metadata is not null) project.Metadata = request.Metadata;
         project.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -99,8 +101,9 @@ public class ProjectsService(AppDbContext db, IStorageService storage) : IProjec
 
     public async Task DeleteAsync(Guid userId, Guid projectId, CancellationToken ct)
     {
-        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.OwnerId == userId, ct)
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId, ct)
             ?? throw new NotFoundException("Project", projectId);
+        if (project.OwnerId != userId) throw new ForbiddenException();
         db.Projects.Remove(project);
         await db.SaveChangesAsync(ct);
     }

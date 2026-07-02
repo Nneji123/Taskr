@@ -45,4 +45,8 @@ public abstract class BaseController(ICurrentUser currentUser) : ControllerBase
     /// <summary>Shortcut to create a 200 OK response for delete operations.</summary>
     protected IActionResult DeletedResult(string message = "Deleted successfully")
         => Ok(ApiResponse<object?>.Ok(null, message));
+
+    /// <summary>Shortcut to create a 400 Bad Request response with the standard envelope.</summary>
+    protected IActionResult BadRequestResult(string message, object? errors = null)
+        => BadRequest(ApiResponse.Fail(message, errors));
 }
